@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import About from '../components/About.astro';
+import Projects from '../components/Projects.astro';
+import Skills from '../components/Skills.astro';
+import Timeline from '../components/Timeline.astro';
+import Contact from '../components/Contact.astro';
+---
+
+<BaseLayout title="CoMaE" description="Personal portfolio — developer, builder, open source enthusiast.">
+  <Navbar />
+  <main>
+    <Hero />
+    <About />
+    <Projects />
+    <Skills />
+    <Timeline />
+    <Contact />
+  </main>
+</BaseLayout>
+
+<script>
+  // Intersection observer for scroll-reveal
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-slide-up');
+          entry.target.classList.remove('opacity-0-init');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+  );
+
+  document.querySelectorAll('.reveal').forEach((el) => {
+    el.classList.add('opacity-0-init');
+    observer.observe(el);
+  });
+</script>
