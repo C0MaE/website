@@ -1,0 +1,51 @@
+---
+const categories = [
+  {
+    name: 'Frontend',
+    icon: '🖥️',
+    skills: ['TypeScript', 'React', 'Next.js', 'Astro', 'Tailwind CSS', 'Framer Motion'],
+  },
+  {
+    name: 'Backend',
+    icon: '⚙️',
+    skills: ['Rust', 'Axum', 'Tokio', 'PostgreSQL', 'SQLx', 'REST APIs'],
+  },
+  {
+    name: 'Physics & Math',
+    icon: '⚛️',
+    skills: ['Numerical Methods', 'Linear Algebra', 'Classical Mechanics', 'Python (NumPy/SciPy)', 'LaTeX', 'Data Analysis'],
+  },
+  {
+    name: 'DevOps & Tools',
+    icon: '🛠️',
+    skills: ['Docker', 'Git', 'Linux', 'CI/CD', 'Vercel', 'WebAssembly'],
+  },
+];
+---
+
+<section id="skills" class="py-32 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-16">
+      <p class="font-mono text-accent-light text-xs tracking-widest uppercase mb-4">03. Skills</p>
+      <h2 class="text-3xl md:text-4xl font-bold text-zinc-100">What I work with</h2>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-6">
+      {categories.map((cat) => (
+        <div class="reveal bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors duration-200">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-2xl">{cat.icon}</span>
+            <h3 class="font-semibold text-zinc-100">{cat.name}</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            {cat.skills.map(skill => (
+              <span class="px-3 py-1.5 bg-zinc-800 text-zinc-300 text-sm rounded-lg border border-zinc-700/50 font-mono hover:border-accent/40 hover:text-accent-light transition-all duration-150 cursor-default">
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
