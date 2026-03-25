@@ -1,10 +1,16 @@
 name: Multi-Branch Deploy
 
 on:
+  push:
+    branches:
+      - main
+      - dev
+      - placeholder
   pull_request:
     branches:
-      - placeholder
+      - main
       - dev
+      - placeholder
 
 jobs:
   deploy:
