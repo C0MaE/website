@@ -20,19 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Determine branch settings
-        id: vars
-        run: |
-          if [ "${GITHUB_REF_NAME}" == "placeholder" ]; then
-            echo "branch=placeholder" >> $GITHUB_OUTPUT
-            echo "port=3000" >> $GITHUB_OUTPUT
-            echo "container_name=placeholder-app" >> $GITHUB_OUTPUT
-          elif [ "${GITHUB_REF_NAME}" == "dev" ]; then
-            echo "branch=dev" >> $GITHUB_OUTPUT
-            echo "port=3001" >> $GITHUB_OUTPUT
-            echo "container_name=dev-app" >> $GITHUB_OUTPUT
-          fi
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -40,8 +27,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /home/deploy/${{ steps.vars.outputs.branch }} || mkdir -p /home/deploy/${{ steps.vars.outputs.branch }}
-            docker stop ${{ steps.vars.outputs.container_name }} || true
-            docker rm ${{ steps.vars.outputs.container_name }} || true
-            docker build -t ${{ steps.vars.outputs.container_name }} .
-            docker run -d --name ${{ steps.vars.outputs.container_name }} -p ${{ steps.vars.outputs.port }}:80 ${{ steps.vars.outputs.container_name }}
+            cd /home/deploy || mkdir -p /home/deploy
+            
+            docker stop website || true
+            docker rm website || true
+            
+            docker build -t website .
+            
+            docker run -d --name website -p 3000:80 website
