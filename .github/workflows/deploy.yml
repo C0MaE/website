@@ -1,7 +1,7 @@
 name: Multi-Branch Deploy
 
 on:
-  push:
+  pull_request:
     branches:
       - placeholder
       - dev
