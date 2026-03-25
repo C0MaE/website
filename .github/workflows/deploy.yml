@@ -1,0 +1,28 @@
+name: Deploy Astro
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build & Push Docker image
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            cd /home/ubuntu/astro-app &&
+            docker pull myusername/astro-app:latest || true &&
+            docker build -t astro-app:latest . &&
+            docker stop astro-app || true &&
+            docker rm astro-app || true &&
+            docker run -d --name astro-app -p 3000:80 astro-app:latest
+          "
