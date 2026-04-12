@@ -38,4 +38,4 @@ jobs:
               docker rm website
             fi
             docker build -t website .
-            docker run -d --name website -p 3000:80 website
+            docker run -d --name website -p 3000:4321 website
