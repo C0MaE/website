@@ -3,7 +3,7 @@
     "title": "TAP – Tournament Manager",
     "description": "Full-stack tournament management platform with a Rust (Actix-web) REST API, JWT authentication, and a Next.js frontend. Backed by PostgreSQL via SeaORM and containerised with Docker.",
     "tags": ["Rust", "Next.js", "TypeScript", "PostgreSQL", "Docker"],
-    "github": "#",
+    "github": "https://github.com/TAP-Manager",
     "live": null,
     "featured": true,
     "image": null
@@ -12,7 +12,7 @@
     "title": "Open DnD",
     "description": "A developer productivity CLI written in Go. Automates repetitive tasks and integrates with popular APIs.",
     "tags": ["Rust", "Tauri", "React"],
-    "github": "#",
+    "github": "https://github.com/C0MaE/open-dnd-app",
     "live": null,
     "featured": true,
     "image": "/open-dnd.png"
