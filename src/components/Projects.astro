@@ -1,39 +1,17 @@
 ---
-const projects = [
-  {
-    title: 'TAP – Tournament Manager',
-    description: 'Full-stack tournament management platform with a Rust (Actix-web) REST API, JWT authentication, and a Next.js frontend. Backed by PostgreSQL via SeaORM and containerised with Docker.',
-    tags: ['Rust', 'Next.js', 'TypeScript', 'PostgreSQL', 'Docker'],
-    github: '#',
-    live: null,
-    featured: true,
-  },
-  {
-    title: 'Open DnD',
-    description: 'A developer productivity CLI written in Go. Automates repetitive tasks and integrates with popular APIs.',
-    tags: ['Rust', 'Tauri', 'React'],
-    github: '#',
-    image: '/open-dnd.png',
-    live: null,
-    featured: true,
-  },
-  {
-    title: 'McLookup',
-    description: 'A small utility library for Looking up Minecraft Character Data in Kotlin',
-    tags: ['Kotlin', 'gradle'],
-    github: 'https://github.com/C0MaE/McLookup',
-    live: null,
-    featured: false,
-  },
-  {
-    title: 'JDA Command Manager',
-    description: 'A minimal, fast Command Manager for the Discord API - JDA.',
-    tags: ['Kotlin', 'Discord', 'JDA'],
-    github: 'https://github.com/C0MaE/JDACommandManager',
-    live: null,
-    featured: false,
-  }
-];
+import { fetchData } from '../lib/fetchData';
+
+interface Project {
+  title: string;
+  description: string;
+  tags: string[];
+  github: string;
+  live: string | null;
+  featured: boolean;
+  image: string | null;
+}
+
+const projects = await fetchData<Project[]>('projects.json');
 ---
 
 <section id="projects" class="py-32 px-6 bg-zinc-900/30">

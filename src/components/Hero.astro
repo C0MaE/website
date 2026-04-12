@@ -1,4 +1,12 @@
 ---
+import { fetchData } from '../lib/fetchData';
+
+interface HeroData {
+  typewriterWords: string[];
+  bio: string;
+}
+
+const { typewriterWords, bio } = await fetchData<HeroData>('hero.json');
 ---
 
 <section
@@ -25,8 +33,7 @@
     </div>
 
     <p class="text-zinc-400 text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-12 opacity-0-init animate-slide-up animate-delay-300">
-      Physics student building fullstack apps, writing Rust, and crafting simulations.
-      Drawn to problems where software meets the physical world.
+      {bio}
     </p>
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0-init animate-slide-up animate-delay-400">
@@ -56,12 +63,12 @@
   </div>
 </section>
 
-<script>
-  const words = ['Physics Student', 'Fullstack Developer', 'Rust Programmer', 'Simulation Builder'];
+<script define:vars={{ typewriterWords }}>
+  const words = typewriterWords;
   let wordIndex = 0;
   let charIndex = 0;
   let deleting = false;
-  const el = document.getElementById('typewriter')!;
+  const el = document.getElementById('typewriter');
 
   function type() {
     const current = words[wordIndex];

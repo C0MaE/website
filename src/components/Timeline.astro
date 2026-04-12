@@ -1,41 +1,15 @@
 ---
-const events = [
-  {
-    year: 'May 2020',
-    title: 'First Line of Code',
-    place: 'Home',
-    description: 'Got into programming through Java — starting with a Minecraft server. That rabbit hole never really ended.',
-    type: 'milestone',
-  },
-  {
-    year: 'Jan 2024',
-    title: 'First Open Source Project',
-    place: 'GitHub',
-    description: 'Built a fullstack tournament management app in Rust and React — my first real dive into both the language and open source.',
-    type: 'milestone',
-  },
-  {
-    year: 'Jul 2024',
-    title: 'Junior Developer at BEYONDIT GmbH',
-    place: 'Kiel',
-    description: 'Started my first professional role as a developer, working on real-world fullstack projects in a team environment.',
-    type: 'work',
-  },
-  {
-    year: 'Jun 2025',
-    title: 'High School Graduation (Abitur)',
-    place: 'Northern Germany',
-    description: 'Finished school — with coding already a bigger part of my life than most of my classes.',
-    type: 'graduation',
-  },
-  {
-    year: 'Present',
-    title: 'Physics Student',
-    place: 'Christian-Albrechts-Universität Kiel',
-    description: 'Studying physics at CAU Kiel, bridging the gap between scientific thinking and software — simulations, data analysis, and everything in between.',
-    type: 'education',
-  },
-];
+import { fetchData } from '../lib/fetchData';
+
+interface TimelineEvent {
+  year: string;
+  title: string;
+  place: string;
+  description: string;
+  type: 'education' | 'work' | 'milestone' | 'graduation';
+}
+
+const events = await fetchData<TimelineEvent[]>('timeline.json');
 
 const typeColors: Record<string, string> = {
   education: 'bg-accent border-accent/50 text-white',

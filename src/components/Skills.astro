@@ -1,26 +1,13 @@
 ---
-const categories = [
-  {
-    name: 'Frontend',
-    icon: '🖥️',
-    skills: ['TypeScript', 'React', 'Next.js', 'Astro', 'Tailwind CSS', 'Framer Motion'],
-  },
-  {
-    name: 'Backend',
-    icon: '⚙️',
-    skills: ['Rust', 'Axum', 'Tokio', 'PostgreSQL', 'SQLx', 'REST APIs'],
-  },
-  {
-    name: 'Physics & Math',
-    icon: '⚛️',
-    skills: ['Numerical Methods', 'Linear Algebra', 'Classical Mechanics', 'Python (NumPy/SciPy)', 'LaTeX', 'Data Analysis'],
-  },
-  {
-    name: 'DevOps & Tools',
-    icon: '🛠️',
-    skills: ['Docker', 'Git', 'Linux', 'CI/CD', 'Vercel', 'WebAssembly'],
-  },
-];
+import { fetchData } from '../lib/fetchData';
+
+interface SkillCategory {
+  name: string;
+  icon: string;
+  skills: string[];
+}
+
+const categories = await fetchData<SkillCategory[]>('skills.json');
 ---
 
 <section id="skills" class="py-32 px-6">

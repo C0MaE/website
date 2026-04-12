@@ -1,4 +1,11 @@
 ---
+import { fetchData } from '../lib/fetchData';
+
+interface AboutData {
+  paragraphs: string[];
+}
+
+const { paragraphs } = await fetchData<AboutData>('about.json');
 ---
 
 <section id="about" class="py-32 px-6">
@@ -11,22 +18,9 @@
         A little bit<br />about myself
       </h2>
       <div class="space-y-4 text-zinc-400 leading-relaxed">
-        <p>
-          Hey! I'm a 19-year-old Physics student from northern Germany with about
-          7 years of coding under my belt. I work as a developer at
-          <a href="https://beyondit.gmbh" target="_blank" class="text-accent-light hover:underline">BEYONDIT GmbH</a>,
-          building things across the full stack.
-        </p>
-        <p>
-          Rust is my language of choice — I love its performance guarantees and
-          the way it forces you to think clearly about memory and ownership.
-          On the other side, I'm equally at home crafting polished frontends,
-          so fullstack is where I naturally ended up.
-        </p>
-        <p>
-          When I'm not writing code I'm probably buried in physics problem sets
-          or poking at some new Rust crate. Feel free to reach out!
-        </p>
+        {paragraphs.map(p => (
+          <p set:html={p} />
+        ))}
       </div>
     </div>
 

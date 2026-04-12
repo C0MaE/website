@@ -1,0 +1,38 @@
+[
+  {
+    "title": "TAP – Tournament Manager",
+    "description": "Full-stack tournament management platform with a Rust (Actix-web) REST API, JWT authentication, and a Next.js frontend. Backed by PostgreSQL via SeaORM and containerised with Docker.",
+    "tags": ["Rust", "Next.js", "TypeScript", "PostgreSQL", "Docker"],
+    "github": "#",
+    "live": null,
+    "featured": true,
+    "image": null
+  },
+  {
+    "title": "Open DnD",
+    "description": "A developer productivity CLI written in Go. Automates repetitive tasks and integrates with popular APIs.",
+    "tags": ["Rust", "Tauri", "React"],
+    "github": "#",
+    "live": null,
+    "featured": true,
+    "image": "/open-dnd.png"
+  },
+  {
+    "title": "McLookup",
+    "description": "A small utility library for Looking up Minecraft Character Data in Kotlin",
+    "tags": ["Kotlin", "gradle"],
+    "github": "https://github.com/C0MaE/McLookup",
+    "live": null,
+    "featured": false,
+    "image": null
+  },
+  {
+    "title": "JDA Command Manager",
+    "description": "A minimal, fast Command Manager for the Discord API - JDA.",
+    "tags": ["Kotlin", "Discord", "JDA"],
+    "github": "https://github.com/C0MaE/JDACommandManager",
+    "live": null,
+    "featured": false,
+    "image": null
+  }
+]
