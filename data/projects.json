@@ -25,7 +25,7 @@
     "live": null,
     "featured": true,
     "image": null
-  }
+  },
   {
     "title": "McLookup",
     "description": "A small utility library for Looking up Minecraft Character Data in Kotlin",
