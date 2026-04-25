@@ -18,6 +18,15 @@
     "image": "/open-dnd.png"
   },
   {
+    "title": "N-Body Problem Simulation",
+    "description": "A simple Simulation of the famous N-Body Problem",
+    "tags": ["C", "Python", "MatplotLib"],
+    "github": "https://github.com/C0MaE/n-body-problem",
+    "live": null,
+    "featured": true,
+    "image": null
+  }
+  {
     "title": "McLookup",
     "description": "A small utility library for Looking up Minecraft Character Data in Kotlin",
     "tags": ["Kotlin", "gradle"],
