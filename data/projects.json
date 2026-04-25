@@ -1,5 +1,14 @@
 [
   {
+    "title": "N-Body Problem Simulation",
+    "description": "A simple Simulation of the famous N-Body Problem",
+    "tags": ["C", "Python", "MatplotLib"],
+    "github": "https://github.com/C0MaE/n-body-problem",
+    "live": null,
+    "featured": true,
+    "image": null
+  },
+  {
     "title": "TAP – Tournament Manager",
     "description": "Full-stack tournament management platform with a Rust (Actix-web) REST API, JWT authentication, and a Next.js frontend. Backed by PostgreSQL via SeaORM and containerised with Docker.",
     "tags": ["Rust", "Next.js", "TypeScript", "PostgreSQL", "Docker"],
@@ -16,15 +25,6 @@
     "live": null,
     "featured": true,
     "image": "/open-dnd.png"
-  },
-  {
-    "title": "N-Body Problem Simulation",
-    "description": "A simple Simulation of the famous N-Body Problem",
-    "tags": ["C", "Python", "MatplotLib"],
-    "github": "https://github.com/C0MaE/n-body-problem",
-    "live": null,
-    "featured": true,
-    "image": null
   },
   {
     "title": "McLookup",
