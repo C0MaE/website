@@ -19,7 +19,7 @@
   },
   {
     "title": "Open DnD",
-    "description": "A developer productivity CLI written in Go. Automates repetitive tasks and integrates with popular APIs.",
+    "description": "A developer productivity CLI written in Rust with Tauri. Build and Manage your Own DnD Character",
     "tags": ["Rust", "Tauri", "React"],
     "github": "https://github.com/C0MaE/open-dnd-app",
     "live": null,
