@@ -1,6 +1,6 @@
 [
   {
-    "title": "Druckzentrum – Print Center",
+    "title": "Print Center",
     "description": "A CUPS-backed print center for Linux: print any file, manage the queue with live progress, administer printers, scan via SANE and track supply levels. Runs as a small local web app with zero Python dependencies.",
     "tags": ["Python", "CUPS", "SANE", "Linux", "JavaScript"],
     "github": "https://github.com/C0MaE/cups-ui",
