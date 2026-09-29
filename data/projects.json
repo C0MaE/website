@@ -1,5 +1,23 @@
 [
   {
+    "title": "TAP – Tournament Manager",
+    "description": "A tournament platform for esports communities: groups, Swiss, double elimination and leagues with promotion and relegation, server-refereed map veto, check-in and live scoring. Comes with a player app for web and mobile, an offline-capable scorer tool, a caster overlay and a Discord bot.",
+    "tags": ["Rust", "Actix-web", "PostgreSQL", "Next.js", "React Native", "SvelteKit", "Docker"],
+    "github": null,
+    "live": "https://tap.comae.dev",
+    "featured": true,
+    "image": "/tap.jpg"
+  },
+  {
+    "title": "N-Body Problem Simulation",
+    "description": "A numerical simulation of the solar system using the Velocity Verlet integrator. The core runs in C with OpenMP, bodies are configured in a single JSON file, and trajectories are rendered as an animated, zoomable plot in Python.",
+    "tags": ["C", "OpenMP", "CMake", "Python", "Matplotlib"],
+    "github": "https://github.com/C0MaE/n-body-problem",
+    "live": null,
+    "featured": true,
+    "image": null
+  },
+  {
     "title": "Print Center",
     "description": "A CUPS-backed print center for Linux: print any file, manage the queue with live progress, administer printers, scan via SANE and track supply levels. Runs as a small local web app with zero Python dependencies.",
     "tags": ["Python", "CUPS", "SANE", "Linux", "JavaScript"],
@@ -9,27 +27,9 @@
     "image": "/druckzentrum.png"
   },
   {
-    "title": "N-Body Problem Simulation",
-    "description": "A simple Simulation of the famous N-Body Problem",
-    "tags": ["C", "Python", "MatplotLib"],
-    "github": "https://github.com/C0MaE/n-body-problem",
-    "live": null,
-    "featured": true,
-    "image": null
-  },
-  {
-    "title": "TAP – Tournament Manager",
-    "description": "Full-stack tournament management platform with a Rust (Actix-web) REST API, JWT authentication, and a Next.js frontend. Backed by PostgreSQL via SeaORM and containerised with Docker.",
-    "tags": ["Rust", "Next.js", "TypeScript", "PostgreSQL", "Docker"],
-    "github": "https://github.com/TAP-Manager",
-    "live": null,
-    "featured": true,
-    "image": null
-  },
-  {
     "title": "Open DnD",
-    "description": "A developer productivity CLI written in Rust with Tauri. Build and Manage your Own DnD Character",
-    "tags": ["Rust", "Tauri", "React"],
+    "description": "An offline-first D&D 5e character manager for the desktop. Step-by-step character builder, live character sheet, spellbook and inventory with the PHB catalog — everything stored locally in SQLite, no account needed.",
+    "tags": ["Rust", "Tauri", "React", "TypeScript", "SQLite"],
     "github": "https://github.com/C0MaE/open-dnd-app",
     "live": null,
     "featured": true,

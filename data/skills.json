@@ -2,12 +2,12 @@
   {
     "name": "Frontend",
     "icon": "🖥️",
-    "skills": ["TypeScript", "React", "Next.js", "Astro", "Tailwind CSS", "Framer Motion"]
+    "skills": ["TypeScript", "React", "Next.js", "SvelteKit", "React Native", "Astro", "Tailwind CSS", "Tauri"]
   },
   {
     "name": "Backend",
     "icon": "⚙️",
-    "skills": ["Rust", "Axum", "Tokio", "PostgreSQL", "SQLx", "REST APIs"]
+    "skills": ["Rust", "Actix-web", "SeaORM", "Tokio", "PostgreSQL", "SQLite", "REST APIs", "Kotlin"]
   },
   {
     "name": "Physics & Math",
@@ -17,6 +17,6 @@
   {
     "name": "DevOps & Tools",
     "icon": "🛠️",
-    "skills": ["Docker", "Git", "Linux", "CI/CD", "Vercel", "WebAssembly"]
+    "skills": ["Docker", "Git", "Linux", "CI/CD", "SLURM", "WebAssembly"]
   }
 ]

@@ -1,0 +1,22 @@
+[
+  {
+    "title": "hamster-animator",
+    "description": "Turns Monte Carlo radiative transfer simulations of protoplanetary disks into animations with the group's HAMSTER code. You describe the disk, camera path, wavelengths and Stokes quantities; it works out which simulation runs are needed, runs them locally or on SLURM, caches every detector map and renders the video — including polarimetry, RGB composites and parameter sweeps.",
+    "affiliation": "AG Wolf, CAU Kiel",
+    "affiliationUrl": "https://www.astrophysik.uni-kiel.de/en/research/wolf-research-group",
+    "tags": ["Python", "Radiative Transfer", "SLURM", "ffmpeg", "Astrophysics"],
+    "github": "https://github.com/C0MaE/hamster-animator",
+    "image": "/hamster-orbit.jpg",
+    "video": "/hamster-orbit.mp4"
+  },
+  {
+    "title": "IGSN Helper",
+    "description": "Built for DAPHNE4NFDI's sample identifier service: extracts IGSN metadata (DataCite schema v4.4) from lab protocols with a locally running LLM, validates it against a typed schema and generates PDF reports — so samples get persistent identifiers without filling in forms by hand.",
+    "affiliation": "DAPHNE4NFDI",
+    "affiliationUrl": "https://www.daphne4nfdi.de",
+    "tags": ["Python", "Ollama", "Pydantic", "ReportLab", "Research Data"],
+    "github": "https://github.com/C0MaE/igsn_helper",
+    "image": null,
+    "video": null
+  }
+]
