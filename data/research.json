@@ -6,7 +6,7 @@
     "affiliationUrl": "https://www.astrophysik.uni-kiel.de/en/research/wolf-research-group",
     "tags": ["Python", "Radiative Transfer", "SLURM", "ffmpeg", "Astrophysics"],
     "github": "https://github.com/C0MaE/hamster-animator",
-    "image": "/hamster-orbit.jpg",
+    "image": "/hamster-orbit.webp",
     "video": "/hamster-orbit.mp4"
   },
   {

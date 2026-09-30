@@ -6,7 +6,7 @@
     "github": null,
     "live": "https://tap.comae.dev",
     "featured": true,
-    "image": "/tap.jpg"
+    "image": "/tap.webp"
   },
   {
     "title": "N-Body Problem Simulation",
@@ -15,7 +15,7 @@
     "github": "https://github.com/C0MaE/n-body-problem",
     "live": "https://nbody.comae.dev",
     "featured": true,
-    "image": "/n-body.jpg"
+    "image": "/n-body.webp"
   },
   {
     "title": "Print Center",
@@ -24,7 +24,7 @@
     "github": "https://github.com/C0MaE/cups-ui",
     "live": null,
     "featured": true,
-    "image": "/druckzentrum.png"
+    "image": "/print-center.webp"
   },
   {
     "title": "Open DnD",
@@ -33,12 +33,12 @@
     "github": "https://github.com/C0MaE/open-dnd-app",
     "live": null,
     "featured": true,
-    "image": "/open-dnd.png"
+    "image": "/open-dnd.webp"
   },
   {
     "title": "McLookup",
-    "description": "A small utility library for Looking up Minecraft Character Data in Kotlin",
-    "tags": ["Kotlin", "gradle"],
+    "description": "A small Kotlin library for looking up Minecraft player data.",
+    "tags": ["Kotlin", "Gradle"],
     "github": "https://github.com/C0MaE/McLookup",
     "live": null,
     "featured": false,
@@ -46,7 +46,7 @@
   },
   {
     "title": "JDA Command Manager",
-    "description": "A minimal, fast Command Manager for the Discord API - JDA.",
+    "description": "A minimal, fast command manager for JDA, the Java Discord API.",
     "tags": ["Kotlin", "Discord", "JDA"],
     "github": "https://github.com/C0MaE/JDACommandManager",
     "live": null,
