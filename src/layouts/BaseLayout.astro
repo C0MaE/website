@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { SITE_NAME, SITE_URL } from '../lib/site';
+import { UMAMI_WEBSITE_ID } from '../lib/umami';
 
 interface Props {
   title?: string;
@@ -62,7 +63,8 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 
     {ldJson && <script type="application/ld+json" set:html={ldJson} />}
 
-    <script defer src="https://analytics.comae.dev/analytics" data-website-id="ba44e585-7f95-4dc2-bbee-50cf7f9697b4"></script>
+    <!-- Umami analytics (cookie-free), relayed through this domain; only counts visits on comae.dev itself -->
+    <script defer src="/stats.js" data-website-id={UMAMI_WEBSITE_ID} data-host-url="/m" data-domains="comae.dev"></script>
   </head>
   <body>
     <slot />
