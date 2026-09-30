@@ -2,6 +2,8 @@
   "email": "jannis.koberg@icloud.com",
   "socials": [
     { "label": "GitHub", "href": "https://github.com/C0MaE" },
+    { "label": "LinkedIn", "href": "https://www.linkedin.com/in/jannis-koberg-3627b542a" },
+    { "label": "ORCID", "href": "https://orcid.org/0009-0004-1504-2753" },
     { "label": "Discord", "href": "https://discord.com/users/469199839230427146" }
   ]
 }
