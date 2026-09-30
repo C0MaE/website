@@ -19,10 +19,10 @@ const others = projects.filter(p => !p.featured);
 ---
 
 <section id="projects" class="py-20 md:py-28 px-5 bg-zinc-900/30">
-  <div class="max-w-5xl mx-auto">
+  <div class="page-container">
     <SectionHeader eyebrow="Projects" title="Things I've <em class='text-accent-light'>built</em>" />
 
-    <div class="grid md:grid-cols-2 gap-5">
+    <div class="grid md:grid-cols-2 3xl:grid-cols-4 gap-5">
       {featured.map(p => (
         <WorkCard
           title={p.title}

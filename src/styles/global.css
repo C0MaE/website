@@ -13,6 +13,14 @@
     scroll-behavior: smooth;
   }
 
+  /* Scale type and spacing up a little on large monitors instead of leaving empty margins */
+  @media (min-width: 1920px) {
+    html { font-size: 17px; }
+  }
+  @media (min-width: 2400px) {
+    html { font-size: 18px; }
+  }
+
   body {
     @apply bg-zinc-950 text-zinc-100 font-sans antialiased;
   }
@@ -35,10 +43,21 @@
 }
 
 @layer utilities {
+  /* Content width grows with the screen so large monitors aren't mostly margin */
+  .page-container {
+    @apply w-full mx-auto max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-[96rem];
+  }
   .animate-delay-100 { animation-delay: 100ms; }
   .animate-delay-200 { animation-delay: 200ms; }
   .animate-delay-300 { animation-delay: 300ms; }
   .animate-delay-400 { animation-delay: 400ms; }
   .animate-delay-500 { animation-delay: 500ms; }
   .opacity-0-init { opacity: 0; }
+}
+
+/* Respect reduced-motion: show everything immediately instead of fading it in */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .opacity-0-init { opacity: 1; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
