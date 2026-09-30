@@ -1,7 +1,7 @@
 [
   {
     "title": "TAP – Tournament Manager",
-    "description": "A tournament platform for esports communities: groups, Swiss, double elimination and leagues with promotion and relegation, server-refereed map veto, check-in and live scoring. Comes with a player app for web and mobile, an offline-capable scorer tool, a caster overlay and a Discord bot.",
+    "description": "Tournament platform for esports communities: brackets, leagues, map veto and live scoring, with a player app and a Discord bot.",
     "tags": ["Rust", "Actix-web", "PostgreSQL", "Next.js", "React Native", "SvelteKit", "Docker"],
     "github": null,
     "live": "https://tap.comae.dev",
@@ -10,7 +10,7 @@
   },
   {
     "title": "N-Body Problem Simulation",
-    "description": "A numerical simulation of the solar system — planets, moons and Pluto — using the Velocity Verlet integrator. The core runs in C with OpenMP, and a Three.js web viewer lets you fly through 270+ years of orbits, focus any body and export videos.",
+    "description": "Solar system simulation in C with a Velocity Verlet integrator, explorable in a Three.js web viewer.",
     "tags": ["C", "OpenMP", "CMake", "Python", "Three.js"],
     "github": "https://github.com/C0MaE/n-body-problem",
     "live": "https://c0mae.github.io/n-body-problem/",
@@ -19,7 +19,7 @@
   },
   {
     "title": "Print Center",
-    "description": "A CUPS-backed print center for Linux: print any file, manage the queue with live progress, administer printers, scan via SANE and track supply levels. Runs as a small local web app with zero Python dependencies.",
+    "description": "A CUPS-backed print center for Linux: print, manage the queue, scan and check supplies from the browser.",
     "tags": ["Python", "CUPS", "SANE", "Linux", "JavaScript"],
     "github": "https://github.com/C0MaE/cups-ui",
     "live": null,
@@ -28,7 +28,7 @@
   },
   {
     "title": "Open DnD",
-    "description": "An offline-first D&D 5e character manager for the desktop. Step-by-step character builder, live character sheet, spellbook and inventory with the PHB catalog — everything stored locally in SQLite, no account needed.",
+    "description": "Offline-first D&D 5e character manager for the desktop: builder, character sheet, spellbook and inventory.",
     "tags": ["Rust", "Tauri", "React", "TypeScript", "SQLite"],
     "github": "https://github.com/C0MaE/open-dnd-app",
     "live": null,
