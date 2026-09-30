@@ -13,7 +13,7 @@
     "description": "Solar system simulation in C with a Velocity Verlet integrator, explorable in a Three.js web viewer.",
     "tags": ["C", "OpenMP", "CMake", "Python", "Three.js"],
     "github": "https://github.com/C0MaE/n-body-problem",
-    "live": "https://c0mae.github.io/n-body-problem/",
+    "live": "https://nbody.comae.dev",
     "featured": true,
     "image": "/n-body.jpg"
   },
