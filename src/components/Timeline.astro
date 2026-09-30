@@ -1,5 +1,6 @@
 ---
 import { fetchData } from '../lib/fetchData';
+import SectionHeader from './SectionHeader.astro';
 
 interface TimelineEvent {
   year: string;
@@ -11,83 +12,33 @@ interface TimelineEvent {
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
 
-const typeColors: Record<string, string> = {
-  education: 'bg-accent border-accent/50 text-white',
-  work: 'bg-emerald-600 border-emerald-500/50 text-white',
-  milestone: 'bg-zinc-700 border-zinc-600 text-zinc-200',
-  graduation: 'bg-amber-600 border-amber-500/50 text-white',
+const dot: Record<string, string> = {
+  education: 'bg-accent-light',
+  work: 'bg-emerald-400',
+  milestone: 'bg-zinc-500',
+  graduation: 'bg-amber-400',
 };
 
-const typeDot: Record<string, string> = {
-  education: 'bg-accent shadow-accent/40',
-  work: 'bg-emerald-500 shadow-emerald-500/40',
-  milestone: 'bg-zinc-500 shadow-zinc-500/40',
-  graduation: 'bg-amber-500 shadow-amber-500/40',
-};
+// Newest first reads better on a phone
+const ordered = [...events].reverse();
 ---
 
-<section id="timeline" class="py-32 px-6">
-  <div class="max-w-3xl mx-auto">
-    <div class="reveal mb-16">
-      <p class="font-mono text-accent-light text-xs tracking-widest uppercase mb-4">05. Journey</p>
-      <h2 class="text-3xl md:text-4xl font-bold text-zinc-100">My timeline</h2>
-    </div>
+<section id="timeline" class="py-20 md:py-28 px-5 bg-zinc-900/30">
+  <div class="max-w-5xl mx-auto">
+    <SectionHeader eyebrow="Journey" title="How I <em class='text-accent-light'>got here</em>" />
 
-    <div class="relative">
-      <!-- Vertical line -->
-      <div class="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-t from-accent/40 via-zinc-700 to-transparent -translate-x-1/2" />
-
-      <div class="space-y-10">
-        {events.map((event, i) => (
-          <div class={`reveal relative flex items-start gap-6 md:gap-0 ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
-
-            <!-- Dot -->
-            <div class={`relative z-10 flex-shrink-0 w-8 h-8 md:absolute md:left-1/2 md:-translate-x-1/2 rounded-full flex items-center justify-center shadow-lg ${typeDot[event.type]} ${event.year === 'Present' ? 'animate-pulse' : ''}`}>
-              {event.type === 'education' && (
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 3.866-4.03 7-9 7S3 16.866 3 13a12.083 12.083 0 012.84-1.422L12 14z"/>
-                </svg>
-              )}
-              {event.type === 'work' && (
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                </svg>
-              )}
-              {event.type === 'milestone' && (
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                </svg>
-              )}
-              {event.type === 'graduation' && (
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 3.866-4.03 7-9 7S3 16.866 3 13a12.083 12.083 0 012.84-1.422L12 14z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14V7"/>
-                </svg>
-              )}
-            </div>
-
-            <!-- Card -->
-            <div class={`flex-1 md:w-[calc(50%-2.5rem)] md:max-w-[calc(50%-2.5rem)] ml-2 md:ml-0 ${i % 2 === 0 ? 'md:pr-12' : 'md:pl-12'}`}>
-              <div class={`relative bg-zinc-900 border rounded-xl p-5 transition-colors duration-200 ${event.year === 'Present' ? 'border-accent/50 hover:border-accent shadow-lg shadow-accent/10' : 'border-zinc-800 hover:border-zinc-700'}`}>
-                {event.year === 'Present' && (
-                  <div class="absolute -inset-px rounded-xl bg-accent/5 blur-sm -z-10" />
-                )}
-                <div class="flex items-start justify-between gap-3 mb-2 flex-wrap">
-                  <h3 class="font-semibold text-zinc-100">{event.title}</h3>
-                  <span class={`text-xs font-mono px-2 py-0.5 rounded-full border ${typeColors[event.type]}`}>
-                    {event.year}
-                  </span>
-                </div>
-                <p class="text-xs font-mono text-zinc-500 mb-2">{event.place}</p>
-                <p class="text-zinc-400 text-sm leading-relaxed">{event.description}</p>
-              </div>
-            </div>
-
+    <ol class="relative border-l border-zinc-800 md:border-l-0 ml-1.5 md:ml-0">
+      {ordered.map(e => (
+        <li class="reveal relative pl-6 md:pl-0 pb-9 last:pb-0 md:grid md:grid-cols-[9rem_1fr] md:gap-8">
+          <span class={`absolute -left-[5px] md:left-[8.6rem] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-zinc-950 ${dot[e.type]}`} />
+          <p class="font-mono text-xs text-zinc-500 mb-1 md:mb-0 md:pt-1 md:text-right md:pr-6">{e.year}</p>
+          <div class="md:pl-6 md:border-l md:border-zinc-800">
+            <h3 class="text-zinc-100 font-medium">{e.title}</h3>
+            <p class="font-mono text-xs text-zinc-500 mb-2">{e.place}</p>
+            <p class="text-sm text-zinc-400 leading-relaxed max-w-xl">{e.description}</p>
           </div>
-        ))}
-      </div>
-    </div>
+        </li>
+      ))}
+    </ol>
   </div>
 </section>

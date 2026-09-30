@@ -4,90 +4,133 @@ import { fetchData } from '../lib/fetchData';
 interface HeroData {
   typewriterWords: string[];
   bio: string;
+  now?: { label: string; href?: string }[];
 }
 
-const { typewriterWords, bio } = await fetchData<HeroData>('hero.json');
+const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('hero.json');
 ---
 
-<section
-  id="hero"
-  class="min-h-screen flex items-center justify-center relative overflow-hidden px-6"
->
-  <!-- Background grid -->
-  <div class="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black,transparent)]" />
+<section id="hero" class="relative overflow-hidden px-5 pt-28 pb-16 md:pt-36 md:pb-24">
+  <!-- Orbit simulation -->
+  <canvas
+    id="orbits"
+    class="absolute pointer-events-none opacity-60 md:opacity-100 inset-0 md:inset-auto md:right-[-8%] md:top-1/2 md:-translate-y-1/2 md:w-[62%] md:aspect-square w-full h-full md:h-auto"
+    aria-hidden="true"
+  ></canvas>
 
-  <!-- Glow -->
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
-
-  <div class="relative z-10 text-center max-w-3xl mx-auto">
-    <p class="font-mono text-accent-light text-sm tracking-widest uppercase mb-6 opacity-0-init animate-fade-in">
-      Hello, world! I'm
+  <div class="relative z-10 max-w-5xl w-full mx-auto">
+    <p class="font-mono text-xs text-zinc-500 tracking-wider mb-6 opacity-0-init animate-fade-in">
+      Kiel, Germany · 54.32° N
     </p>
 
-    <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 opacity-0-init animate-slide-up animate-delay-100">
-      <span class="text-zinc-100">CoMaE</span>
+    <h1 class="font-serif text-7xl sm:text-8xl md:text-9xl leading-[0.9] text-zinc-50 mb-5 opacity-0-init animate-slide-up animate-delay-100">
+      CoMaE
     </h1>
 
-    <div class="text-xl md:text-2xl text-zinc-400 mb-10 h-8 opacity-0-init animate-fade-in animate-delay-200">
-      <span id="typewriter" class="font-mono"></span><span class="animate-blink text-accent-light">|</span>
-    </div>
+    <p class="font-mono text-sm text-accent-light mb-8 opacity-0-init animate-fade-in animate-delay-200">
+      {roles.join(' / ')}
+    </p>
 
-    <p class="text-zinc-400 text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-12 opacity-0-init animate-slide-up animate-delay-300">
+    <p class="text-zinc-300 text-lg md:text-xl leading-relaxed max-w-xl mb-10 opacity-0-init animate-slide-up animate-delay-300">
       {bio}
     </p>
 
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0-init animate-slide-up animate-delay-400">
-      <a
-        href="#research"
-        class="px-6 py-3 bg-accent hover:bg-accent-dark text-white rounded-lg font-medium text-sm transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 active:scale-95"
-      >
-        View my work
-      </a>
-      <a
-        href="#contact"
-        class="px-6 py-3 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 rounded-lg font-medium text-sm transition-all duration-200 active:scale-95"
-      >
-        Get in touch
-      </a>
-    </div>
-  </div>
+    {now.length > 0 && (
+      <div class="mb-10 opacity-0-init animate-slide-up animate-delay-400">
+        <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-3">Now</p>
+        <ul class="space-y-2">
+          {now.map(item => (
+            <li class="flex items-center gap-3 text-sm text-zinc-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px] shadow-amber-400/60" />
+              {item.href ? (
+                <a href={item.href} target="_blank" rel="noopener noreferrer" class="hover:text-white underline decoration-zinc-700 underline-offset-4 hover:decoration-zinc-400">{item.label}</a>
+              ) : item.label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
 
-  <!-- Scroll hint -->
-  <div class="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0-init animate-fade-in animate-delay-500 [@media(max-height:700px)]:hidden">
-    <div class="flex flex-col items-center gap-2 text-zinc-600">
-      <span class="text-xs tracking-widest uppercase">Scroll</span>
-      <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
+    <div class="flex flex-wrap items-center gap-3 opacity-0-init animate-slide-up animate-delay-500">
+      <a href="#research" class="px-5 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-full font-medium text-sm transition-colors">
+        See my work ↓
+      </a>
+      <a href="#contact" class="px-5 py-2.5 border border-zinc-700 hover:border-zinc-400 text-zinc-300 hover:text-white rounded-full text-sm transition-colors">
+        Contact
+      </a>
     </div>
   </div>
 </section>
 
-<script define:vars={{ typewriterWords }}>
-  const words = typewriterWords;
-  let wordIndex = 0;
-  let charIndex = 0;
-  let deleting = false;
-  const el = document.getElementById('typewriter');
+<script>
+  const canvas = document.getElementById('orbits') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function type() {
-    const current = words[wordIndex];
-    if (!deleting) {
-      el.textContent = current.slice(0, ++charIndex);
-      if (charIndex === current.length) {
-        deleting = true;
-        setTimeout(type, 1800);
-        return;
-      }
-    } else {
-      el.textContent = current.slice(0, --charIndex);
-      if (charIndex === 0) {
-        deleting = false;
-        wordIndex = (wordIndex + 1) % words.length;
-      }
-    }
-    setTimeout(type, deleting ? 60 : 100);
+  // Circular orbits; angular speed from Kepler's third law (T ∝ r^1.5)
+  const bodies = [
+    { r: 0.16, size: 2.2, color: '#a1a1aa', phase: 0.4 },
+    { r: 0.26, size: 3.2, color: '#fbbf24', phase: 2.1 },
+    { r: 0.38, size: 3.6, color: '#a78bfa', phase: 4.0 },
+    { r: 0.52, size: 2.8, color: '#f87171', phase: 1.2 },
+    { r: 0.78, size: 6.0, color: '#fcd34d', phase: 5.3 },
+  ];
+  const TILT = 0.42; // vertical squash → seen at an inclination
+
+  let w = 0, h = 0, dpr = 1, visible = true;
+
+  function resize() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    w = rect.width; h = rect.height;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  setTimeout(type, 800);
+  function draw(t: number) {
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h * 1.6) * 0.5;
+
+    // Orbit rings
+    ctx.lineWidth = 1;
+    for (const b of bodies) {
+      ctx.strokeStyle = 'rgba(161,161,170,0.12)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, b.r * R, b.r * R * TILT, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Star
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.14);
+    glow.addColorStop(0, 'rgba(253,230,138,0.95)');
+    glow.addColorStop(0.25, 'rgba(251,191,36,0.35)');
+    glow.addColorStop(1, 'rgba(124,58,237,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.14, 0, Math.PI * 2); ctx.fill();
+
+    // Planets with short trails
+    for (const b of bodies) {
+      const omega = 0.9 / Math.pow(b.r / 0.16, 1.5);
+      const a = b.phase + t * 0.0004 * omega;
+      for (let k = 18; k >= 0; k--) {
+        const ak = a - k * 0.035;
+        const x = cx + Math.cos(ak) * b.r * R;
+        const y = cy + Math.sin(ak) * b.r * R * TILT;
+        ctx.globalAlpha = k === 0 ? 1 : (1 - k / 18) * 0.35;
+        ctx.fillStyle = b.color;
+        ctx.beginPath(); ctx.arc(x, y, k === 0 ? b.size : b.size * 0.6, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function loop(t: number) {
+    if (visible) draw(t);
+    requestAnimationFrame(loop);
+  }
+
+  resize();
+  addEventListener('resize', resize);
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
+  if (reduced) draw(8000); else requestAnimationFrame(loop);
 </script>

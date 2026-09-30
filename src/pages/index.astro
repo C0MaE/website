@@ -14,9 +14,9 @@ import Contact from '../components/Contact.astro';
   <Navbar />
   <main>
     <Hero />
-    <About />
     <Research />
     <Projects />
+    <About />
     <Skills />
     <Timeline />
     <Contact />
@@ -37,6 +37,16 @@ import Contact from '../components/Contact.astro';
     },
     { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
   );
+
+  // Muted autoplay is unreliable on phones — start previews when they scroll into view
+  const videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target as HTMLVideoElement;
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else video.pause();
+    });
+  });
+  document.querySelectorAll('video.autoplay-video').forEach((v) => videoObserver.observe(v));
 
   document.querySelectorAll('.reveal').forEach((el) => {
     el.classList.add('opacity-0-init');

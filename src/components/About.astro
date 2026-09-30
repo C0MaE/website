@@ -1,5 +1,6 @@
 ---
 import { fetchData } from '../lib/fetchData';
+import SectionHeader from './SectionHeader.astro';
 
 interface AboutData {
   paragraphs: string[];
@@ -8,34 +9,14 @@ interface AboutData {
 const { paragraphs } = await fetchData<AboutData>('about.json');
 ---
 
-<section id="about" class="py-32 px-6">
-  <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-16 items-center">
-
-    <!-- Text -->
+<section id="about" class="py-20 md:py-28 px-5 border-t border-zinc-900">
+  <div class="max-w-5xl mx-auto grid md:grid-cols-[1fr_2fr] gap-8 md:gap-16">
     <div class="reveal">
-      <p class="font-mono text-accent-light text-xs tracking-widest uppercase mb-4">01. About me</p>
-      <h2 class="text-3xl md:text-4xl font-bold text-zinc-100 mb-6">
-        A little bit<br />about myself
-      </h2>
-      <div class="space-y-4 text-zinc-400 leading-relaxed">
-        {paragraphs.map(p => (
-          <p set:html={p} />
-        ))}
-      </div>
+      <SectionHeader eyebrow="About" title="Hi, <em class='text-accent-light'>I'm CoMaE</em>" />
+      <img src="/profile_pic_light.svg" alt="" width="72" height="72" class="w-16 h-16 md:w-20 md:h-20 -mt-4" />
     </div>
-
-    <!-- Card / avatar area -->
-    <div class="reveal flex justify-center">
-      <div class="relative group">
-        <!-- Avatar -->
-        <div class="w-64 h-64 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden">
-          <img src="/profile_pic_light.svg" alt="CoMaE logo" width="176" height="176" class="w-44 h-44" />
-        </div>
-
-        <!-- Decorative border offset -->
-        <div class="absolute -z-10 inset-0 translate-x-3 translate-y-3 rounded-2xl border border-accent/40 group-hover:translate-x-4 group-hover:translate-y-4 transition-transform duration-300" />
-      </div>
+    <div class="reveal space-y-5 text-zinc-300 text-base md:text-lg leading-relaxed md:pt-8">
+      {paragraphs.map(p => <p set:html={p} />)}
     </div>
-
   </div>
 </section>
