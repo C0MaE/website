@@ -12,33 +12,95 @@ interface TimelineEvent {
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
 
-const dot: Record<string, string> = {
-  education: 'bg-accent-light',
-  work: 'bg-emerald-400',
-  milestone: 'bg-zinc-500',
-  graduation: 'bg-amber-400',
+const planet: Record<string, string> = {
+  education: 'bg-accent-light shadow-accent-light/50',
+  work: 'bg-emerald-400 shadow-emerald-400/50',
+  milestone: 'bg-zinc-400 shadow-zinc-400/40',
+  graduation: 'bg-amber-400 shadow-amber-400/50',
 };
 
-// Newest first reads better on a phone
+// Newest at the top. Each station is pushed sideways along an arc (right → left → right),
+// so the curve drawn through the dots reads as a trajectory rising towards "now".
 const ordered = [...events].reverse();
+const n = ordered.length;
+const offsetAt = (i: number) => {
+  const t = n > 1 ? i / (n - 1) : 0;
+  return (1 - Math.sin(Math.PI * t)) * (1 - 0.45 * t);
+};
 ---
 
-<section id="timeline" class="py-20 md:py-28 px-5 bg-zinc-900/30">
+<section id="timeline" class="py-20 md:py-28 px-5">
   <div class="page-container">
     <SectionHeader eyebrow="Journey" title="How I <em class='text-accent-light'>got here</em>" />
 
-    <ol class="relative border-l border-zinc-800 md:border-l-0 ml-1.5 md:ml-0">
-      {ordered.map(e => (
-        <li class="reveal relative pl-6 md:pl-0 pb-9 last:pb-0 md:grid md:grid-cols-[9rem_1fr] md:gap-8">
-          <span class={`absolute -left-[5px] md:left-[8.6rem] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-zinc-950 ${dot[e.type]}`} />
-          <p class="font-mono text-xs text-zinc-500 mb-1 md:mb-0 md:pt-1 md:text-right md:pr-6">{e.year}</p>
-          <div class="md:pl-6 md:border-l md:border-zinc-800">
-            <h3 class="text-zinc-100 font-medium">{e.title}</h3>
+    <ol id="trajectory" class="relative [--amp:1.75rem] md:[--amp:min(34vw,32rem)]">
+      <svg class="absolute inset-0 w-full h-full overflow-visible pointer-events-none" aria-hidden="true">
+        <defs>
+          <linearGradient id="traj-gradient" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0" stop-color="#3f3f46" stop-opacity="0.4" />
+            <stop offset="1" stop-color="#a78bfa" stop-opacity="0.9" />
+          </linearGradient>
+        </defs>
+        <path id="traj-path" d="" fill="none" stroke="url(#traj-gradient)" stroke-width="1.5" stroke-dasharray="4 6" />
+        <circle r="3" fill="#fde68a" class="motion-reduce:hidden drop-shadow-[0_0_6px_#fbbf24]">
+          <animateMotion dur="9s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#traj-path" />
+          </animateMotion>
+        </circle>
+      </svg>
+
+      {ordered.map((e, i) => {
+        const x = offsetAt(i).toFixed(3);
+        const now = !/\d{4}/.test(e.year);
+        return (
+          <li class="reveal relative pb-10 last:pb-0" style={`padding-left: calc(${x} * var(--amp) + 2.25rem)`}>
+            <span
+              class={`traj-dot absolute top-1 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'} ${now ? 'w-4 h-4 -ml-0.5 ring-[6px] ring-accent/20' : 'w-3 h-3'}`}
+              style={`left: calc(${x} * var(--amp))`}
+            />
+            <p class={`font-mono text-[11px] uppercase tracking-widest mb-1 ${now ? 'text-accent-light' : 'text-zinc-500'}`}>
+              {now ? 'Now' : e.year}
+            </p>
+            <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
             <p class="font-mono text-xs text-zinc-500 mb-2">{e.place}</p>
-            <p class="text-sm text-zinc-400 leading-relaxed max-w-xl">{e.description}</p>
-          </div>
-        </li>
-      ))}
+            <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
+          </li>
+        );
+      })}
     </ol>
   </div>
 </section>
+
+<script>
+  const list = document.getElementById('trajectory')!;
+  const path = document.getElementById('traj-path')!;
+
+  // Smooth curve through the dot centres (Catmull-Rom → cubic Bézier), oldest first so the comet climbs.
+  // offsetLeft/offsetTop ignore transforms, so the reveal animation doesn't skew the measurement.
+  function draw() {
+    const pts = [...list.querySelectorAll<HTMLElement>('.traj-dot')].map((dot) => {
+      const li = dot.parentElement!;
+      return {
+        x: li.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2,
+        y: li.offsetTop + dot.offsetTop + dot.offsetHeight / 2,
+      };
+    }).reverse();
+    if (pts.length < 2) return;
+
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] ?? p2;
+      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+      const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      d += ` C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
+    }
+    path.setAttribute('d', d);
+  }
+
+  new ResizeObserver(draw).observe(list);
+  document.fonts?.ready.then(draw);
+  draw();
+</script>
