@@ -6,3 +6,6 @@ export const GET: APIRoute = async () =>
   new Response(llmsTxt(await loadSite()), {
     headers: { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'public, max-age=300' },
   });
+
+// Crawlers and link checkers often probe with HEAD first; Node drops the body
+export const HEAD = GET;

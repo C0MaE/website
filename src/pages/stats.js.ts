@@ -19,3 +19,5 @@ export const GET: APIRoute = async () => {
     headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
   });
 };
+
+export const HEAD = GET;

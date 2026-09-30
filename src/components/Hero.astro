@@ -17,7 +17,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   </div>
 
   <div class="relative z-10 page-container">
-    <p class="font-mono text-xs text-zinc-500 tracking-wider mb-6 opacity-0-init animate-fade-in">
+    <p class="font-mono text-xs text-muted tracking-wider mb-6 opacity-0-init animate-fade-in">
       Kiel, Germany · 54.32° N
     </p>
 
@@ -35,7 +35,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 
     {now.length > 0 && (
       <div class="mb-10 opacity-0-init animate-slide-up animate-delay-400">
-        <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-3">Now</p>
+        <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-3">Now</p>
         <ul class="space-y-2">
           {now.map(item => (
             <li class="flex items-center gap-3 text-sm text-zinc-300">

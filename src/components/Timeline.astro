@@ -110,8 +110,8 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
                   <span class={`w-1.5 h-1.5 shrink-0 rounded-full ${toneOf(e).bg}`} />
                   {e.title}
                 </h3>
-                <p class="font-mono text-xs text-zinc-500 mb-2 pl-4">
-                  {e.place}{hasDate(e) && <span class="text-zinc-600"> · since {e.year}</span>}
+                <p class="font-mono text-xs text-muted mb-2 pl-4">
+                  {e.place}{hasDate(e) && <span class="text-faint"> · since {e.year}</span>}
                 </p>
                 <p class="text-sm text-zinc-400 leading-relaxed max-w-md pl-4">{e.description}</p>
               </article>
@@ -128,9 +128,9 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
         if (st.kind === 'event') return (
           <li class="reveal relative pb-10 last:pb-0" style={pad}>
             <span class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`} style={left} />
-            <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-1">{e.year}</p>
+            <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-1">{e.year}</p>
             <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
-            <p class="font-mono text-xs text-zinc-500 mb-2">{e.place}</p>
+            <p class="font-mono text-xs text-muted mb-2">{e.place}</p>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
           </li>
         );
@@ -153,18 +153,18 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
                 />
               </>
             )}
-            <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-              {ended ? e.until : e.year} <span class="text-zinc-600">· {ended ? 'ended' : 'started'}</span>
+            <p class="font-mono text-[11px] uppercase tracking-widest text-muted">
+              {ended ? e.until : e.year} <span class="text-faint">· {ended ? 'ended' : 'started'}</span>
             </p>
             {ended ? (
               <>
                 <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
-                <p class="font-mono text-xs text-zinc-500 mb-2">{e.place} · {e.year} – {e.until}</p>
+                <p class="font-mono text-xs text-muted mb-2">{e.place} · {e.year} – {e.until}</p>
                 <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
               </>
             ) : (
               <p class="text-sm text-zinc-400">
-                {e.title} <span class="text-zinc-600">{e.until ? `↑ until ${e.until}` : '↑ still going'}</span>
+                {e.title} <span class="text-faint">{e.until ? `↑ until ${e.until}` : '↑ still going'}</span>
               </p>
             )}
           </li>

@@ -9,7 +9,7 @@ const { eyebrow, title, intro } = Astro.props;
 ---
 
 <header class="reveal mb-10 md:mb-14 max-w-2xl">
-  <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-3">{eyebrow}</p>
+  <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-3">{eyebrow}</p>
   <h2 class="font-serif text-5xl md:text-6xl leading-none text-zinc-50" set:html={title} />
   {intro && <p class="text-zinc-400 leading-relaxed mt-4">{intro}</p>}
 </header>

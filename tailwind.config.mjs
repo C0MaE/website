@@ -18,6 +18,9 @@ export default {
           light: '#a78bfa',
           dark: '#5b21b6',
         },
+        // Secondary text greys, just light enough for WCAG AA (4.5:1) on the zinc-950 page
+        muted: '#8f8f98',
+        faint: '#7c7c85',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease forwards',

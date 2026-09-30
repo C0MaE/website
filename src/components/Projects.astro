@@ -38,7 +38,7 @@ const others = projects.filter(p => !p.featured);
 
     {others.length > 0 && (
       <div class="reveal mt-14">
-        <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-4">Smaller things</p>
+        <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-4">Smaller things</p>
         <ul class="divide-y divide-zinc-800 border-y border-zinc-800">
           {others.map(p => (
             <li>
@@ -49,8 +49,8 @@ const others = projects.filter(p => !p.featured);
                 class="group flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-4 hover:bg-zinc-900/60 -mx-3 px-3 rounded-lg transition-colors"
               >
                 <span class="font-medium text-zinc-100 sm:w-48 shrink-0 group-hover:text-white">{p.title}</span>
-                <span class="text-sm text-zinc-500 flex-1">{p.description}</span>
-                <span class="font-mono text-xs text-zinc-600">{p.tags.join(' · ')}</span>
+                <span class="text-sm text-muted flex-1">{p.description}</span>
+                <span class="font-mono text-xs text-faint">{p.tags.join(' · ')}</span>
               </a>
             </li>
           ))}

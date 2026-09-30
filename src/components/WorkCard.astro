@@ -45,7 +45,10 @@ const primaryHref = live ?? github ?? null;
       <img
         src={image}
         alt={`${title} — preview`}
+        width="1280"
+        height="800"
         loading="lazy"
+        decoding="async"
         class={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover object-top'} group-hover:scale-[1.02] transition-transform duration-500`}
       />
     ) : (
