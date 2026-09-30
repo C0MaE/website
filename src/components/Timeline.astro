@@ -79,17 +79,20 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
             <stop offset="0" stop-color="#3f3f46" stop-opacity="0.4" />
             <stop offset="1" stop-color="#a78bfa" stop-opacity="0.9" />
           </linearGradient>
-          <radialGradient id="now-glow">
-            <stop offset="0" stop-color="#c4b5fd" />
-            <stop offset="0.55" stop-color="#8b5cf6" />
-            <stop offset="1" stop-color="#6d28d9" />
+          <!-- Lit from the upper left, like a sphere -->
+          <radialGradient id="now-glow" cx="0.5" cy="0.5" fx="0.32" fy="0.28" r="0.6">
+            <stop offset="0" stop-color="#ede9fe" />
+            <stop offset="0.35" stop-color="#a78bfa" />
+            <stop offset="0.8" stop-color="#6d28d9" />
+            <stop offset="1" stop-color="#3b0764" />
           </radialGradient>
         </defs>
         <path id="traj-path" d="" fill="none" stroke="url(#traj-gradient)" stroke-width="1.5" stroke-dasharray="4 6" />
         <!-- Depth order: trails, moons behind the planet, the planet, moons in front, comet, flashes -->
         <g id="layer-trails"></g>
         <g id="layer-back"></g>
-        <circle id="now-planet" r="9" fill="url(#now-glow)" class="drop-shadow-[0_0_10px_rgba(167,139,250,0.7)]" opacity="0" />
+        <circle id="now-halo" r="17" fill="#8b5cf6" opacity="0" style="filter: blur(5px)" />
+        <circle id="now-planet" r="9" fill="url(#now-glow)" opacity="0" />
         <g id="layer-front"></g>
         <g id="layer-fx"></g>
       </svg>
@@ -176,32 +179,38 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
   const list = document.getElementById('trajectory')!;
   const path = document.getElementById('traj-path') as unknown as SVGPathElement;
   const planetEl = document.getElementById('now-planet') as unknown as SVGCircleElement;
+  const haloEl = document.getElementById('now-halo') as unknown as SVGCircleElement;
   const layer = (id: string) => document.getElementById(id) as unknown as SVGGElement;
   const trails = layer('layer-trails'), back = layer('layer-back'), front = layer('layer-front'), fx = layer('layer-fx');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const moonSpecs: { range: number | null; color: string }[] = JSON.parse(list.dataset.moons ?? '[]');
 
-  // Orbits are circles in a tilted plane, seen from slightly above
-  const TILT = 0.5;
-  // Tighter on phones, where the text sits close to the planet
+  // --- Tuning -------------------------------------------------------------------------------
+  const TILT = 0.5;                                        // orbit plane seen from slightly above
   const SCALE = matchMedia('(max-width: 767px)').matches ? 0.6 : 1;
-  const GAP = 14;                 // px along the path between the probe and each body it tows
-  const HANDOVER = 46 * SCALE;    // px before "now" where the probe swings into orbit
-  const SPRING = 110, SPRING_DAMP = 13;   // towing: slightly under-damped, bodies swing a little
-  const EASE = 0.7;               // s — how quickly dropped bodies settle onto their own orbit
+  const ACCEL = 160, DECEL = 110;                          // px/s² — gentle start, gentle braking
+  const LAG = 0.17;                                        // s behind the probe for each towed body
+  const TOW_K = 36;                                        // towing spring (critically damped)
+  const ORBIT_K = 3.2, SPIN_K = 1.3;                       // how softly bodies settle onto an orbit
+  const PLANET_R = 9;
 
-  // Moon k: radius and period grow outward, like a real system
-  const orbitFor = (k: number) => ({ R: (22 + k * 9) * SCALE, period: 6 + k * 3.5 });
-  const PROBE_R = orbitFor(moonSpecs.length).R + 6 * SCALE;
-  const PROBE_PERIOD = 3.4;       // s for the probe's single lap
+  // Moons: radius grows outward and the period follows Kepler's third law (T ∝ R^1.5)
+  const R0 = 22 * SCALE, T0 = 7;
+  const orbitFor = (k: number) => {
+    const R = (22 + k * 9) * SCALE;
+    return { R, period: T0 * (R / R0) ** 1.5 };
+  };
+  const PROBE_R = orbitFor(moonSpecs.length).R + 8 * SCALE;
+  const PROBE_PERIOD = 4.6;                                // s per lap — the probe is powered, so it laps quicker than a moon
+  const HANDOVER = PROBE_R * 1.9;                          // leave the path this far out and curve in
 
   type Vec = { x: number; y: number };
-  // Polar position in the orbit plane around "now"
-  type Orbit = { rho: number; theta: number; R: number; omega: number; omegaTarget: number };
+  // State in the orbit plane around "now": polar position and its rates
+  type Orbit = { rho: number; rhoDot: number; theta: number; thetaDot: number; R: number; omega: number };
   type Body = {
-    el: SVGCircleElement; trail: SVGCircleElement[]; hist: Vec[];
+    el: SVGCircleElement; size: number; trail: SVGCircleElement[]; hist: Vec[];
     mode: 'hidden' | 'towed' | 'landing' | 'orbit';
-    p: Vec; v: Vec; o: Orbit;
+    p: Vec; v: Vec; o: Orbit; ring: SVGEllipseElement | null; ringAlpha: number;
   };
   type Range = { id: number; dot: HTMLElement; ghost: HTMLElement | null; startAt: number; endAt: number | null; end: Vec | null; body: Body; order: number; moon: number };
 
@@ -211,45 +220,70 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
   const moons: Body[] = [];
   const pulses: { el: SVGCircleElement; t0: number }[] = [];
 
-  const circle = (parent: SVGGElement, r: number, fill: string) => {
-    const c = document.createElementNS(SVG_NS, 'circle');
-    c.setAttribute('r', `${r}`);
-    c.setAttribute('fill', fill);
-    c.setAttribute('opacity', '0');
-    parent.appendChild(c);
-    return c;
+  // --- SVG helpers --------------------------------------------------------------------------
+  const make = <K extends keyof SVGElementTagNameMap>(tag: K, parent: SVGGElement, attrs: Record<string, string | number>) => {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, `${v}`);
+    parent.appendChild(el);
+    return el;
   };
-  const put = (c: SVGCircleElement, p: Vec, opacity = 1) => {
+  const put = (c: SVGCircleElement, p: Vec, opacity = 1, r?: number) => {
     c.setAttribute('cx', p.x.toFixed(2));
     c.setAttribute('cy', p.y.toFixed(2));
     c.setAttribute('opacity', opacity.toFixed(3));
+    if (r !== undefined) c.setAttribute('r', r.toFixed(2));
   };
   // Plain {x, y}: a DOMPoint's coordinates are getters and get lost when the point is copied with {...p}
   const at = (s: number): Vec => {
     const q = path.getPointAtLength(Math.min(Math.max(s, 0), length));
     return { x: q.x, y: q.y };
   };
-  const fromOrbit = (rho: number, theta: number): Vec => ({ x: now.x + Math.cos(theta) * rho, y: now.y + Math.sin(theta) * rho * TILT });
-  const toOrbit = (p: Vec) => {
-    const x = p.x - now.x, z = (p.y - now.y) / TILT;
-    return { rho: Math.hypot(x, z), theta: Math.atan2(z, x) };
-  };
-  const approach = (value: number, target: number, dt: number, tau: number) => value + (target - value) * (1 - Math.exp(-dt / tau));
 
+  // --- Orbit maths --------------------------------------------------------------------------
+  const fromOrbit = (o: Orbit): Vec => ({ x: now.x + Math.cos(o.theta) * o.rho, y: now.y + Math.sin(o.theta) * o.rho * TILT });
+  // Screen position + velocity → polar state in the orbit plane (keeps the motion continuous)
+  function toOrbit(p: Vec, v: Vec, R: number, period: number): Orbit {
+    const x = p.x - now.x, z = (p.y - now.y) / TILT;
+    const vx = v.x, vz = v.y / TILT;
+    const rho = Math.max(Math.hypot(x, z), 1);
+    const thetaDot = (x * vz - z * vx) / (rho * rho);
+    const sgn = Math.sign(thetaDot) || 1;
+    return { rho, rhoDot: (x * vx + z * vz) / rho, theta: Math.atan2(z, x), thetaDot, R, omega: (sgn * 2 * Math.PI) / period };
+  }
+  // Radius settles critically damped (no bounce), angular speed eases towards its Kepler value
+  function stepOrbit(o: Orbit, dt: number) {
+    o.rhoDot += (ORBIT_K * (o.R - o.rho) - 2 * Math.sqrt(ORBIT_K) * o.rhoDot) * dt;
+    o.rho = Math.max(o.rho + o.rhoDot * dt, 0);
+    o.thetaDot += SPIN_K * (o.omega - o.thetaDot) * dt;
+    o.theta += o.thetaDot * dt;
+  }
+  function stepTow(b: Body, target: Vec, dt: number) {
+    const damp = 2 * Math.sqrt(TOW_K);
+    b.v.x += (TOW_K * (target.x - b.p.x) - damp * b.v.x) * dt;
+    b.v.y += (TOW_K * (target.y - b.p.y) - damp * b.v.y) * dt;
+    b.p.x += b.v.x * dt;
+    b.p.y += b.v.y * dt;
+  }
+
+  // --- Bodies -------------------------------------------------------------------------------
   function makeBody(color: string, size = 3): Body {
-    const trail = Array.from({ length: 7 }, (_, i) => circle(trails, size * 0.8 * (1 - i / 9), color));
-    const el = circle(front, size, color);
+    const trail = Array.from({ length: 9 }, (_, i) => make('circle', trails, { r: size * 0.75 * (1 - i / 11), fill: color, opacity: 0 }));
+    const el = make('circle', front, { r: size, fill: color, opacity: 0 });
     el.style.filter = `drop-shadow(0 0 4px ${color})`;
-    return { el, trail, hist: [], mode: 'hidden', p: { x: 0, y: 0 }, v: { x: 0, y: 0 }, o: { rho: 0, theta: 0, R: 0, omega: 0, omegaTarget: 0 } };
+    return {
+      el, size, trail, hist: [], mode: 'hidden', p: { x: 0, y: 0 }, v: { x: 0, y: 0 },
+      o: { rho: 0, rhoDot: 0, theta: 0, thetaDot: 0, R: 0, omega: 0 }, ring: null, ringAlpha: 0,
+    };
   }
 
   moonSpecs.forEach((spec, k) => {
     const body = makeBody(spec.color);
     const { R, period } = orbitFor(k);
     const omega = (2 * Math.PI) / period;
-    body.o = { rho: R, theta: k * 2.3, R, omega, omegaTarget: omega };
-    // Undated things (e.g. "Physics student") have always been here; carried ones arrive with the probe
-    if (spec.range === null || reduced) body.mode = 'orbit';
+    body.o = { rho: R, rhoDot: 0, theta: k * 2.3, thetaDot: omega, R, omega };
+    body.ring = make('ellipse', trails, { rx: R, ry: R * TILT, fill: 'none', stroke: spec.color, 'stroke-width': 0.6, opacity: 0 });
+    // Undated things have always been here; everything with a start date arrives with the probe
+    if (spec.range === null || reduced) { body.mode = 'orbit'; body.ringAlpha = 1; }
     moons.push(body);
   });
 
@@ -257,6 +291,7 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
   probe.el.style.filter = 'drop-shadow(0 0 6px #fbbf24)';
   probe.trail.forEach((c) => c.setAttribute('fill', '#fbbf24'));
 
+  // --- Layout -------------------------------------------------------------------------------
   // offsetLeft/offsetTop ignore transforms, so the reveal animation doesn't skew the measurement
   const centre = (dot: HTMLElement): Vec => {
     const li = dot.parentElement!;
@@ -272,20 +307,36 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
     return best;
   };
 
-  // Smooth curve through the dot centres (Catmull-Rom → cubic Bézier), oldest first so the probe climbs
+  // Centripetal Catmull-Rom through the points, as cubic Béziers. Unlike the uniform variant it
+  // stays kink-free when short rows (the "started" markers) sit next to tall ones.
+  function smoothPath(pts: Vec[]) {
+    const dist = (a: Vec, b: Vec) => Math.hypot(b.x - a.x, b.y - a.y) ** 0.5;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = pts[i], p2 = pts[i + 1];
+      const p0 = pts[i - 1] ?? { x: 2 * p1.x - p2.x, y: 2 * p1.y - p2.y };
+      const p3 = pts[i + 2] ?? { x: 2 * p2.x - p1.x, y: 2 * p2.y - p1.y };
+      const d1 = dist(p0, p1), d2 = dist(p1, p2), d3 = dist(p2, p3);
+      const c = (a: number, b: number, m: number, da: number, db: number) =>
+        (da * da * b - db * db * a + (2 * da * da + 3 * da * db + db * db) * m) / (3 * da * (da + db));
+      const c1 = { x: c(p0.x, p2.x, p1.x, d1, d2), y: c(p0.y, p2.y, p1.y, d1, d2) };
+      const c2 = { x: c(p3.x, p1.x, p2.x, d3, d2), y: c(p3.y, p1.y, p2.y, d3, d2) };
+      d += ` C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
+    }
+    return d;
+  }
+
+  // The trajectory runs through the dot centres, oldest first so the probe climbs
   function layout() {
     const dots = [...list.querySelectorAll<HTMLElement>('.traj-dot')].reverse();
     const pts = dots.map(centre);
     if (pts.length < 2) return;
-    let d = `M ${pts[0].x} ${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] ?? pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] ?? p2;
-      d += ` C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`;
-    }
-    path.setAttribute('d', d);
+    path.setAttribute('d', smoothPath(pts));
     length = path.getTotalLength();
     now = pts[pts.length - 1];
     put(planetEl, now);
+    put(haloEl, now, 0.22);
+    for (const m of moons) m.ring?.setAttribute('cx', `${now.x}`), m.ring?.setAttribute('cy', `${now.y}`);
 
     const previous = new Map(ranges.map((r) => [r.id, r]));
     const found = new Map<number, Range>();
@@ -311,62 +362,60 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
       if (r.ghost) r.ghost.style.opacity = '1';
       if (r.end) { r.body.mode = 'landing'; r.body.p = { ...r.end }; }
     }
-    for (const m of moons) m.p = fromOrbit(m.o.rho, m.o.theta);
+    for (const m of moons) m.p = fromOrbit(m.o);
     renderBodies();
   }
 
   // --- Mission ------------------------------------------------------------------------------
   // flying:   the probe climbs the path, picking up whatever started along the way
-  // orbiting: one lap around "now", setting each carried body onto its own orbit
-  // landing:  the probe spirals down onto the planet and is gone
-  let phase: 'idle' | 'flying' | 'orbiting' | 'landing' | 'done' = 'idle';
-  let flightStart = 0, landStart = 0, lap = 0, towed = 0;
-  const probeOrbit = { rho: 0, theta: 0, omega: 0, sgn: 1 };
+  // orbiting: it curves into a lap around "now", setting each carried body onto its own orbit
+  // landing:  it spirals down onto the planet and is gone
+  let phase: 'idle' | 'waiting' | 'flying' | 'orbiting' | 'landing' | 'done' = 'idle';
+  let launchAt = 0, s = 0, speed = 0, lap = 0, towed = 0, sgn = 1;
+  // Breadcrumbs of the probe's own track; towed bodies follow these, so there is no seam
+  // between following the path and following the orbit
+  let crumbs: { t: number; x: number; y: number; s: number }[] = [];
+
+  const cruise = () => Math.min(Math.max(length / 7, 150), 230);
+  const orbitSpeed = () => (2 * Math.PI * PROBE_R) / PROBE_PERIOD;
+
+  function crumbAt(t: number) {
+    for (let i = crumbs.length - 1; i > 0; i--) {
+      if (crumbs[i - 1].t <= t) {
+        const a = crumbs[i - 1], b = crumbs[i], k = (t - a.t) / Math.max(b.t - a.t, 1e-6);
+        return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, s: k < 0.5 ? a.s : b.s };
+      }
+    }
+    return crumbs[0];
+  }
 
   function pulse(p: Vec, color: string, time: number) {
-    const el = circle(fx, 3, 'none');
-    el.setAttribute('stroke', color);
-    el.setAttribute('stroke-width', '1.2');
-    put(el, p);
+    const el = make('circle', fx, { r: 3, fill: 'none', stroke: color, 'stroke-width': 1.2, opacity: 0 });
+    put(el, p, 0.7);
     pulses.push({ el, t0: time });
   }
 
   function reset() {
     phase = 'idle';
-    towed = 0;
-    lap = 0;
+    s = speed = lap = towed = 0;
+    crumbs = [];
     for (const r of ranges) {
       r.dot.style.opacity = '1';
       if (r.ghost) r.ghost.style.opacity = '0';
       r.body.mode = 'hidden';
       r.body.hist = [];
+      r.body.ringAlpha = 0;
     }
     probe.mode = 'hidden';
     probe.hist = [];
   }
 
-  function stepSpring(b: Body, target: Vec, dt: number) {
-    b.v.x += (SPRING * (target.x - b.p.x) - SPRING_DAMP * b.v.x) * dt;
-    b.v.y += (SPRING * (target.y - b.p.y) - SPRING_DAMP * b.v.y) * dt;
-    b.p.x += b.v.x * dt;
-    b.p.y += b.v.y * dt;
-  }
-
-  // Glide from wherever it is onto its own circular orbit — radius and speed ease in, no overshoot
-  function stepOrbit(b: Body, dt: number) {
-    const o = b.o;
-    o.rho = approach(o.rho, o.R, dt, EASE);
-    o.omega = approach(o.omega, o.omegaTarget, dt, EASE);
-    o.theta += o.omega * dt;
-    b.p = fromOrbit(o.rho, o.theta);
-  }
-
-  // Set a carried body loose around "now", continuing the probe's motion
+  // Set a carried body loose around "now", continuing exactly the motion it had
   function deploy(r: Range, time: number) {
     const b = r.body;
     const { R, period } = orbitFor(r.moon);
-    const { rho, theta } = toOrbit(b.p);
-    b.o = { rho, theta, R, omega: probeOrbit.omega, omegaTarget: (probeOrbit.sgn * 2 * Math.PI) / period };
+    b.o = toOrbit(b.p, b.v, R, period);
+    b.o.omega = (sgn * 2 * Math.PI) / period;   // same sense of rotation as the probe
     b.mode = 'orbit';
     pulse(b.p, r.dot.dataset.color ?? '#fff', time);
   }
@@ -374,13 +423,19 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
   const towedRanges = () => ranges.filter((r) => r.body.mode === 'towed').sort((a, b) => b.order - a.order);
 
   function update(time: number, dt: number) {
+    if (phase === 'waiting' && time >= launchAt) phase = 'flying';
+
     if (phase === 'flying') {
-      // Slow start at the first station, steady climb, then a gentle approach before orbit insertion
-      const q = Math.min(Math.max((time - flightStart) / Math.min(Math.max(length * 6, 6500), 11000), 0), 1);
-      const eased = q < 0.5 ? 2 * q * q : 1 - (-2 * q + 2) ** 2 / 2;
-      const s = eased * (length - HANDOVER);
+      // Speed up gently, cruise, and brake down to orbital speed before the planet — never to a stop
+      const remaining = length - HANDOVER - s;
+      const braking = Math.sqrt(orbitSpeed() ** 2 + 2 * DECEL * Math.max(remaining, 0));
+      speed = Math.min(speed + ACCEL * dt, cruise(), braking);
+      s += speed * dt;
+      const p = at(s), ahead = at(s + 1), behind = at(s - 1);
+      const tl = Math.hypot(ahead.x - behind.x, ahead.y - behind.y) || 1;
       probe.mode = 'towed';
-      probe.p = at(s);
+      probe.p = p;
+      probe.v = { x: ((ahead.x - behind.x) / tl) * speed, y: ((ahead.y - behind.y) / tl) * speed };
 
       for (const r of ranges) {
         const b = r.body;
@@ -395,90 +450,100 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
           pulse(b.p, r.dot.dataset.color ?? '#fff', time);
         }
       }
-      // Most recently collected rides right behind the probe; never pulled back below its station
-      towedRanges().forEach((r, rank) => {
-        const along = Math.max(s - GAP * (rank + 1), r.startAt);
-        if (r.endAt !== null && along >= r.endAt) { r.body.mode = 'landing'; return; }
-        stepSpring(r.body, at(along), dt);
-      });
 
-      if (q >= 1) {
-        // Orbit insertion: keep the probe where it is and turn its motion into a lap around "now"
-        const { rho, theta } = toOrbit(probe.p);
-        const a = toOrbit(at(length - HANDOVER - 4)), sgn = Math.sign(Math.sin(theta - a.theta)) || 1;
-        Object.assign(probeOrbit, { rho, theta, sgn, omega: (sgn * 2 * Math.PI) / PROBE_PERIOD });
+      if (s >= length - HANDOVER) {
+        // Orbit insertion: same position, same velocity — the controller bends it into a lap
+        probe.o = toOrbit(probe.p, probe.v, PROBE_R, PROBE_PERIOD);
+        sgn = Math.sign(probe.o.thetaDot) || 1;
+        probe.o.omega = (sgn * 2 * Math.PI) / PROBE_PERIOD;
         phase = 'orbiting';
         lap = 0;
       }
     } else if (phase === 'orbiting' || phase === 'landing') {
-      const target = phase === 'orbiting' ? PROBE_R : 3;
-      probeOrbit.rho = approach(probeOrbit.rho, target, dt, phase === 'orbiting' ? 0.35 : 0.3);
-      probeOrbit.theta += probeOrbit.omega * dt;
-      lap += Math.abs(probeOrbit.omega) * dt;
-      probe.p = fromOrbit(probeOrbit.rho, probeOrbit.theta);
+      stepOrbit(probe.o, dt);
+      lap += Math.abs(probe.o.thetaDot) * dt;
+      probe.p = fromOrbit(probe.o);
 
-      // Towed bodies follow on the probe's orbit, a little behind; each is dropped at its share of the lap
       const carried = towedRanges();
-      carried.forEach((r, rank) => {
-        const lag = probeOrbit.theta - probeOrbit.sgn * 0.45 * (rank + 1);
-        stepSpring(r.body, fromOrbit(probeOrbit.rho, lag), dt);
-      });
-      const total = carried.length + ranges.filter((r) => r.body.mode === 'orbit' && r.moon >= 0).length;
-      const dropped = total - carried.length;
-      if (carried.length && lap >= ((dropped + 1) / (total + 1)) * 2 * Math.PI) deploy(carried[carried.length - 1], time);
+      const done = ranges.filter((r) => r.moon >= 0 && r.body.mode === 'orbit').length;
+      const total = carried.length + done;
+      // Spread the drop-offs over the lap, farthest-back body first
+      if (carried.length && lap >= ((done + 1) / (total + 1)) * 2 * Math.PI) deploy(carried[carried.length - 1], time);
 
-      if (phase === 'orbiting' && lap >= 2 * Math.PI && !carried.length) { phase = 'landing'; landStart = time; }
-      if (phase === 'landing' && time - landStart > 900) {
+      if (phase === 'orbiting' && lap >= 2 * Math.PI && !carried.length) {
+        phase = 'landing';
+        probe.o.R = 0;                        // spiral down onto the planet
+      }
+      if (phase === 'landing' && probe.o.rho < PLANET_R * 0.6) {
         phase = 'done';
         probe.mode = 'hidden';
         pulse(now, '#fde68a', time);
       }
     }
 
-    for (const r of ranges) if (r.body.mode === 'landing' && r.end) stepSpring(r.body, r.end, dt);
-    for (const m of moons) if (m.mode === 'orbit') stepOrbit(m, dt);
+    if (phase === 'flying' || phase === 'orbiting' || phase === 'landing') {
+      crumbs.push({ t: time, x: probe.p.x, y: probe.p.y, s: phase === 'flying' ? s : Infinity });
+      while (crumbs.length > 2 && crumbs[0].t < time - 3000) crumbs.shift();
+    }
+
+    // Towed bodies trail the probe along its own track; most recently collected rides closest
+    towedRanges().forEach((r, rank) => {
+      const c = crumbAt(time - LAG * 1000 * (rank + 1));
+      if (!c) return;
+      if (r.endAt !== null && c.s >= r.endAt) { r.body.mode = 'landing'; return; }
+      stepTow(r.body, c.s < r.startAt ? centre(r.dot) : c, dt);
+    });
+
+    for (const r of ranges) if (r.body.mode === 'landing' && r.end) stepTow(r.body, r.end, dt);
+    for (const m of moons) if (m.mode === 'orbit') { stepOrbit(m.o, dt); m.p = fromOrbit(m.o); m.ringAlpha = Math.min(m.ringAlpha + dt / 1.5, 1); }
 
     for (let i = pulses.length - 1; i >= 0; i--) {
-      const q = (time - pulses[i].t0) / 700;
+      const q = (time - pulses[i].t0) / 800;
       if (q >= 1) { pulses[i].el.remove(); pulses.splice(i, 1); continue; }
-      pulses[i].el.setAttribute('r', `${3 + 22 * q}`);
-      pulses[i].el.setAttribute('opacity', `${0.7 * (1 - q)}`);
+      pulses[i].el.setAttribute('r', `${3 + 20 * q}`);
+      pulses[i].el.setAttribute('opacity', `${0.6 * (1 - q) ** 2}`);
     }
   }
 
+  // --- Rendering ----------------------------------------------------------------------------
   function renderBodies() {
     const bodies = new Set([...moons, ...ranges.map((r) => r.body), probe]);
     for (const b of bodies) {
       const shown = b.mode !== 'hidden';
-      if (shown) { b.hist.push({ ...b.p }); if (b.hist.length > 28) b.hist.shift(); }
-      // Anything on the far side of the planet passes behind it
-      const circling = b.mode === 'orbit' || (b === probe && (phase === 'orbiting' || phase === 'landing')) || (b.mode === 'towed' && phase === 'orbiting');
-      const behind = circling && b.p.y < now.y;
+      if (shown) { b.hist.push({ ...b.p }); if (b.hist.length > 30) b.hist.shift(); }
+
+      // Depth near the planet: the near side (below its centre on screen) is slightly bigger and brighter,
+      // the far side smaller and dimmer, and hidden where the planet covers it
+      const dx = b.p.x - now.x, dy = b.p.y - now.y;
+      const near = Math.hypot(dx, dy / TILT) < PROBE_R * 1.6;
+      const depth = near ? Math.max(-1, Math.min(1, dy / (Math.max(Math.hypot(dx, dy / TILT), 1) * TILT))) : 0;
+      const behind = near && depth < 0;
       const want = behind ? back : front;
       if (b.el.parentNode !== want) want.appendChild(b.el);
-      const fade = b === probe && phase === 'landing' ? Math.max(0, 1 - (performance.now() - landStart) / 900) : 1;
-      put(b.el, b.p, shown ? fade : 0);
+
+      const landingFade = b === probe && phase === 'landing' ? Math.min(1, probe.o.rho / (PROBE_R * 0.5)) : 1;
+      const opacity = shown ? landingFade * (0.82 + 0.18 * depth) : 0;
+      put(b.el, b.p, opacity, b.size * (1 + 0.16 * depth));
       b.trail.forEach((c, i) => {
-        const h = b.hist[b.hist.length - 1 - (i + 1) * 3];
-        if (h && shown && !reduced) put(c, h, 0.35 * fade * (1 - i / b.trail.length)); else c.setAttribute('opacity', '0');
+        const h = b.hist[b.hist.length - 1 - (i + 1) * 2];
+        if (h && shown && !reduced) put(c, h, 0.3 * landingFade * (1 - i / b.trail.length)); else c.setAttribute('opacity', '0');
       });
+      if (b.ring) b.ring.setAttribute('opacity', (0.16 * b.ringAlpha).toFixed(3));
     }
   }
 
   // --- Loop ---------------------------------------------------------------------------------
-  // Fixed physics steps, catching up on dropped frames, so the motion is the same at any frame rate
-  const STEP = 1 / 120;
-  let visible = false, last = 0, pending = 0;
+  // Each frame's real elapsed time is split into equal sub-steps of at most 1/120 s: stable physics,
+  // and every frame advances by exactly its own duration (no stutter from whole fixed steps)
+  const MAX_STEP = 1 / 120;
+  let visible = false, last = 0;
   function frame(time: number) {
-    pending = Math.min(pending + (time - (last || time)) / 1000, 0.25);
+    const elapsed = Math.min((time - (last || time)) / 1000, 0.1);
     last = time;
-    if (visible && length) {
-      const steps = Math.floor(pending / STEP);
-      for (let i = 0; i < steps; i++) update(time - (steps - 1 - i) * STEP * 1000, STEP);
-      pending -= steps * STEP;
+    if (visible && length && elapsed > 0) {
+      const steps = Math.ceil(elapsed / MAX_STEP), dt = elapsed / steps;
+      for (let i = 1; i <= steps; i++) update(time - (elapsed - i * dt) * 1000, dt);
       renderBodies();
-    } else {
-      pending = 0;
     }
     requestAnimationFrame(frame);
   }
@@ -500,8 +565,8 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
     const launchPad = list.lastElementChild;
     if (launchPad) new IntersectionObserver(([e]) => {
       if (e.isIntersecting && phase === 'idle') {
-        phase = 'flying';
-        flightStart = performance.now() + 300;
+        phase = 'waiting';
+        launchAt = performance.now() + 400;
       }
     }, { threshold: 0.6 }).observe(launchPad);
     requestAnimationFrame(frame);
