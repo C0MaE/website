@@ -7,5 +7,5 @@ export default defineConfig({
   site: 'https://comae.dev',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
-  integrations: [tailwind(), sitemap()],
+  integrations: [tailwind(), sitemap({ serialize: (item) => ({ ...item, lastmod: new Date().toISOString(), changefreq: 'weekly' }) })],
 });

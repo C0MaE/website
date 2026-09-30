@@ -7,9 +7,12 @@ import Research from '../components/Research.astro';
 import Skills from '../components/Skills.astro';
 import Timeline from '../components/Timeline.astro';
 import Contact from '../components/Contact.astro';
+import { loadSite, pageTitle, pageDescription, structuredData } from '../lib/site';
+
+const site = await loadSite();
 ---
 
-<BaseLayout title="CoMaE" description="Personal portfolio — developer, builder, open source enthusiast.">
+<BaseLayout title={pageTitle(site)} description={pageDescription(site)} jsonLd={structuredData(site)}>
   <Navbar />
   <main>
     <Hero />

@@ -35,6 +35,7 @@ const primaryHref = live ?? github ?? null;
   >
     {video ? (
       <video
+        aria-label={`${title} — preview animation`}
         src={video}
         poster={image ?? undefined}
         autoplay muted loop playsinline preload="metadata"
@@ -43,7 +44,7 @@ const primaryHref = live ?? github ?? null;
     ) : image ? (
       <img
         src={image}
-        alt=""
+        alt={`${title} — preview`}
         loading="lazy"
         class={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover object-top'} group-hover:scale-[1.02] transition-transform duration-500`}
       />
