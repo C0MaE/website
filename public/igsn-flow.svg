@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540" width="800" height="540" role="img" aria-labelledby="t d">
+  <title id="t">IGSN Helper pipeline</title>
+  <desc id="d">A free-text submission (DOCX or PDF) is read, a local LLM extracts the facts, values are verified against the source document, checked and enriched via ORCID and ROR, and written as draft DataCite records with a provenance file for a curator to review before IGSN registration.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#18181b" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="50%" cy="50%" r="55%">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#a78bfa"/>
+    </marker>
+    <style>
+      .node { fill: #18181b; stroke: #3f3f46; stroke-width: 1.5; }
+      .node-accent { fill: #18181b; stroke: #7c3aed; stroke-width: 1.5; }
+      .node-done { fill: #18181b; stroke: #10b981; stroke-width: 1.5; }
+      .step { font: 500 12px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 1px; fill: #a78bfa; }
+      .step-done { fill: #34d399; }
+      .title { font: 600 23px Inter, system-ui, sans-serif; fill: #f4f4f5; }
+      .sub { font: 400 15px 'JetBrains Mono', ui-monospace, monospace; fill: #a1a1aa; }
+      .edge { fill: none; stroke: #a78bfa; stroke-width: 2; stroke-dasharray: 6 5; }
+      .icon { fill: none; stroke: #a1a1aa; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-done { stroke: #34d399; }
+    </style>
+  </defs>
+
+  <rect width="800" height="540" fill="#09090b"/>
+  <rect width="800" height="540" fill="url(#grid)"/>
+  <rect width="800" height="540" fill="url(#glow)"/>
+
+  <!-- Row 1: left to right -->
+  <g transform="translate(40 80)">
+    <rect class="node" width="210" height="140" rx="14"/>
+    <text class="step" x="20" y="32">01 · INPUT</text>
+    <path class="icon" d="M170 16h-16v26h22V22z M170 16v6h6"/>
+    <text class="title" x="20" y="86">Submission</text>
+    <text class="sub" x="20" y="114">DOCX / PDF</text>
+  </g>
+  <g transform="translate(295 80)">
+    <rect class="node-accent" width="210" height="140" rx="14"/>
+    <text class="step" x="20" y="32">02 · EXTRACT</text>
+    <g class="icon"><rect x="156" y="18" width="20" height="20" rx="3"/><path d="M161 14v4M171 14v4M161 38v4M171 38v4M152 23h4M152 33h4M176 23h4M176 33h4"/></g>
+    <text class="title" x="20" y="86">Local LLM</text>
+    <text class="sub" x="20" y="114">Ollama, on-device</text>
+  </g>
+  <g transform="translate(550 80)">
+    <rect class="node" width="210" height="140" rx="14"/>
+    <text class="step" x="20" y="32">03 · VERIFY</text>
+    <g class="icon"><circle cx="163" cy="26" r="9"/><path d="M170 33l7 7"/></g>
+    <text class="title" x="20" y="86">Copy check</text>
+    <text class="sub" x="20" y="114">must be in source</text>
+  </g>
+
+  <!-- Row 2: right to left -->
+  <g transform="translate(550 320)">
+    <rect class="node" width="210" height="140" rx="14"/>
+    <text class="step" x="20" y="32">04 · VALIDATE</text>
+    <path class="icon" d="M166 14l12 5v9c0 8-5 12-12 15-7-3-12-7-12-15v-9z M160 28l4 4 8-8"/>
+    <text class="title" x="20" y="86">Checks</text>
+    <text class="sub" x="20" y="114">+ ORCID / ROR</text>
+  </g>
+  <g transform="translate(295 320)">
+    <rect class="node" width="210" height="140" rx="14"/>
+    <text class="step" x="20" y="32">05 · OUTPUT</text>
+    <path class="icon" d="M160 16c-5 0-5 3-5 7s-3 5-5 5c2 0 5 1 5 5s0 7 5 7M172 16c5 0 5 3 5 7s3 5 5 5c-2 0-5 1-5 5s0 7-5 7"/>
+    <text class="title" x="20" y="86">Draft records</text>
+    <text class="sub" x="20" y="114">JSON + provenance</text>
+  </g>
+  <g transform="translate(40 320)">
+    <rect class="node-done" width="210" height="140" rx="14"/>
+    <text class="step step-done" x="20" y="32">06 · REVIEW</text>
+    <g class="icon icon-done"><circle cx="166" cy="28" r="12"/><path d="M160 28l4 4 8-8"/></g>
+    <text class="title" x="20" y="86">Curator</text>
+    <text class="sub" x="20" y="114">ready for IGSN</text>
+  </g>
+
+  <!-- Edges -->
+  <path class="edge" d="M252 150H290" marker-end="url(#arrow)"/>
+  <path class="edge" d="M507 150H545" marker-end="url(#arrow)"/>
+  <path class="edge" d="M655 222V315" marker-end="url(#arrow)"/>
+  <path class="edge" d="M548 390H510" marker-end="url(#arrow)"/>
+  <path class="edge" d="M293 390H255" marker-end="url(#arrow)"/>
+</svg>

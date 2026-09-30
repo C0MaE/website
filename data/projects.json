@@ -10,12 +10,12 @@
   },
   {
     "title": "N-Body Problem Simulation",
-    "description": "A numerical simulation of the solar system using the Velocity Verlet integrator. The core runs in C with OpenMP, bodies are configured in a single JSON file, and trajectories are rendered as an animated, zoomable plot in Python.",
-    "tags": ["C", "OpenMP", "CMake", "Python", "Matplotlib"],
+    "description": "A numerical simulation of the solar system — planets, moons and Pluto — using the Velocity Verlet integrator. The core runs in C with OpenMP, and a Three.js web viewer lets you fly through 270+ years of orbits, focus any body and export videos.",
+    "tags": ["C", "OpenMP", "CMake", "Python", "Three.js"],
     "github": "https://github.com/C0MaE/n-body-problem",
-    "live": null,
+    "live": "https://c0mae.github.io/n-body-problem/",
     "featured": true,
-    "image": null
+    "image": "/n-body.jpg"
   },
   {
     "title": "Print Center",

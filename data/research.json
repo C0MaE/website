@@ -11,12 +11,12 @@
   },
   {
     "title": "IGSN Helper",
-    "description": "Built for DAPHNE4NFDI's sample identifier service: extracts IGSN metadata (DataCite schema v4.4) from lab protocols with a locally running LLM, validates it against a typed schema and generates PDF reports — so samples get persistent identifiers without filling in forms by hand.",
+    "description": "Built for DAPHNE4NFDI's sample identifier service: drafts DataCite/IGSN metadata records from the free-text sample submissions researchers send in (DOCX or PDF) using a local LLM. Every extracted value is checked against the source document, validated and enriched via ORCID/ROR, and each record ships with a provenance file for the curator — plus a benchmark against curated records.",
     "affiliation": "DAPHNE4NFDI",
     "affiliationUrl": "https://www.daphne4nfdi.de",
-    "tags": ["Python", "Ollama", "Pydantic", "ReportLab", "Research Data"],
+    "tags": ["Python", "Ollama", "Pydantic", "pdfplumber", "DataCite", "ORCID / ROR"],
     "github": "https://github.com/C0MaE/igsn_helper",
-    "image": null,
+    "image": "/igsn-flow.svg",
     "video": null
   }
 ]
