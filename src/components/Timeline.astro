@@ -8,6 +8,8 @@ interface TimelineEvent {
   place: string;
   description: string;
   type: 'education' | 'work' | 'milestone' | 'graduation';
+  /** Still going on: rides along with "now" instead of sitting on the path as a passed station */
+  ongoing?: boolean;
 }
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
@@ -18,15 +20,28 @@ const planet: Record<string, string> = {
   milestone: 'bg-zinc-400 shadow-zinc-400/40',
   graduation: 'bg-amber-400 shadow-amber-400/50',
 };
-
-// Newest at the top. Each station is pushed sideways along an arc (right → left → right),
-// so the curve drawn through the dots reads as a trajectory rising towards "now".
-const ordered = [...events].reverse();
-const n = ordered.length;
-const offsetAt = (i: number) => {
-  const t = n > 1 ? i / (n - 1) : 0;
-  return (1 - Math.sin(Math.PI * t)) * (1 - 0.45 * t);
+const moon: Record<string, string> = {
+  education: 'bg-accent-light',
+  work: 'bg-emerald-400',
+  milestone: 'bg-zinc-400',
+  graduation: 'bg-amber-400',
 };
+
+const hasDate = (e: TimelineEvent) => /\d{4}/.test(e.year);
+const isCurrent = (e: TimelineEvent) => e.ongoing || !hasDate(e);
+
+// "Now" first (undated), then the most recently started
+const current = events.filter(isCurrent).reverse().sort((a, b) => Number(hasDate(a)) - Number(hasDate(b)));
+const past = events.filter(e => !isCurrent(e)).reverse();
+
+// Each row is pushed sideways along an arc (right → left → right), so the curve drawn
+// through the dots reads as a trajectory rising towards "now"
+const rows = (current.length ? 1 : 0) + past.length;
+const offsetAt = (i: number) => {
+  const t = rows > 1 ? i / (rows - 1) : 0;
+  return ((1 - Math.sin(Math.PI * t)) * (1 - 0.45 * t)).toFixed(3);
+};
+const pastOffset = current.length ? 1 : 0;
 ---
 
 <section id="timeline" class="py-20 md:py-28 px-5">
@@ -49,18 +64,45 @@ const offsetAt = (i: number) => {
         </circle>
       </svg>
 
-      {ordered.map((e, i) => {
-        const x = offsetAt(i).toFixed(3);
-        const now = !/\d{4}/.test(e.year);
+      {current.length > 0 && (
+        <li class="reveal relative pb-12" style={`padding-left: calc(${offsetAt(0)} * var(--amp) + 2.75rem)`}>
+          <!-- "Now" planet; everything still ongoing orbits it as a moon and travels with it -->
+          <span class="traj-dot absolute top-0 w-5 h-5 -ml-1 rounded-full bg-accent-light shadow-[0_0_18px] shadow-accent-light/60" style={`left: calc(${offsetAt(0)} * var(--amp))`}>
+            {current.map((e, k) => (
+              <span
+                class={`moon absolute left-1/2 top-1/2 -ml-[3px] -mt-[3px] w-1.5 h-1.5 rounded-full ${moon[e.type] ?? 'bg-zinc-400'}`}
+                style={`--r: ${16 + k * 7}px; --start: ${k * 137}deg; animation-duration: ${5 + k * 2.5}s`}
+              />
+            ))}
+          </span>
+
+          <p class="font-mono text-[11px] uppercase tracking-widest text-accent-light mb-3">Now</p>
+          <div class="grid gap-6">
+            {current.map(e => (
+              <article>
+                <h3 class="flex items-center gap-2.5 text-zinc-50 font-medium text-lg leading-snug">
+                  <span class={`w-1.5 h-1.5 shrink-0 rounded-full ${moon[e.type] ?? 'bg-zinc-400'}`} />
+                  {e.title}
+                </h3>
+                <p class="font-mono text-xs text-zinc-500 mb-2 pl-4">
+                  {e.place}{hasDate(e) && <span class="text-zinc-600"> · since {e.year}</span>}
+                </p>
+                <p class="text-sm text-zinc-400 leading-relaxed max-w-md pl-4">{e.description}</p>
+              </article>
+            ))}
+          </div>
+        </li>
+      )}
+
+      {past.map((e, i) => {
+        const x = offsetAt(i + pastOffset);
         return (
           <li class="reveal relative pb-10 last:pb-0" style={`padding-left: calc(${x} * var(--amp) + 2.25rem)`}>
             <span
-              class={`traj-dot absolute top-1 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'} ${now ? 'w-4 h-4 -ml-0.5 ring-[6px] ring-accent/20' : 'w-3 h-3'}`}
+              class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`}
               style={`left: calc(${x} * var(--amp))`}
             />
-            <p class={`font-mono text-[11px] uppercase tracking-widest mb-1 ${now ? 'text-accent-light' : 'text-zinc-500'}`}>
-              {now ? 'Now' : e.year}
-            </p>
+            <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-1">{e.year}</p>
             <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
             <p class="font-mono text-xs text-zinc-500 mb-2">{e.place}</p>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
@@ -70,6 +112,17 @@ const offsetAt = (i: number) => {
     </ol>
   </div>
 </section>
+
+<style>
+  .moon {
+    transform: rotate(var(--start)) translateX(var(--r));
+    animation: moon-orbit linear infinite;
+  }
+  @keyframes moon-orbit {
+    from { transform: rotate(var(--start)) translateX(var(--r)); }
+    to { transform: rotate(calc(var(--start) + 360deg)) translateX(var(--r)); }
+  }
+</style>
 
 <script>
   const list = document.getElementById('trajectory')!;
