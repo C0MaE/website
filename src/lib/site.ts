@@ -31,7 +31,8 @@ const displayName = (s: Site) => (s.hero.name ? `${s.hero.name} (${SITE_NAME})` 
 const sentence = (t: string) => (/[.!?]$/.test(t.trim()) ? t.trim() : `${t.trim()}.`);
 const isCurrent = (e: TimelineEvent) => !e.until && (e.ongoing || !/\d{4}/.test(e.year));
 
-export const pageTitle = (s: Site) => `${displayName(s)} — ${s.hero.typewriterWords.slice(0, 2).join(' & ')} in Kiel`;
+// The handle only — the real name deliberately stays out of the title
+export const pageTitle = (s: Site) => `${SITE_NAME} — ${s.hero.typewriterWords.slice(0, 2).join(' & ')} in Kiel`;
 
 // Kept around 160 characters, which is what search results show
 export function pageDescription(s: Site) {
