@@ -8,8 +8,10 @@ interface TimelineEvent {
   place: string;
   description: string;
   type: 'education' | 'work' | 'milestone' | 'graduation';
-  /** Still going on: rides along with "now" instead of sitting on the path as a passed station */
+  /** Still going on: the comet picks it up where it started and carries it to "now" */
   ongoing?: boolean;
+  /** For something that has ended ("Mar 2027"): the comet drops it off there */
+  until?: string;
 }
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
@@ -20,36 +22,58 @@ const planet: Record<string, string> = {
   milestone: 'bg-zinc-400 shadow-zinc-400/40',
   graduation: 'bg-amber-400 shadow-amber-400/50',
 };
-const moon: Record<string, string> = {
-  education: 'bg-accent-light',
-  work: 'bg-emerald-400',
-  milestone: 'bg-zinc-400',
-  graduation: 'bg-amber-400',
+const tone: Record<string, { bg: string; border: string; hex: string }> = {
+  education: { bg: 'bg-accent-light', border: 'border-accent-light', hex: '#a78bfa' },
+  work: { bg: 'bg-emerald-400', border: 'border-emerald-400', hex: '#34d399' },
+  milestone: { bg: 'bg-zinc-400', border: 'border-zinc-400', hex: '#a1a1aa' },
+  graduation: { bg: 'bg-amber-400', border: 'border-amber-400', hex: '#fbbf24' },
+};
+const toneOf = (e: TimelineEvent) => tone[e.type] ?? tone.milestone;
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+// "Jul 2024" → 2024.5; undated ("Present") sorts after everything
+const dateValue = (label: string) => {
+  const year = label.match(/\d{4}/)?.[0];
+  if (!year) return Infinity;
+  const month = MONTHS.indexOf(label.trim().slice(0, 3).toLowerCase());
+  return Number(year) + (month >= 0 ? month / 12 : 0);
 };
 
 const hasDate = (e: TimelineEvent) => /\d{4}/.test(e.year);
-const isCurrent = (e: TimelineEvent) => e.ongoing || !hasDate(e);
+const isCurrent = (e: TimelineEvent) => !e.until && (e.ongoing || !hasDate(e));
+const isRange = (e: TimelineEvent) => hasDate(e) && (!!e.until || !!e.ongoing);
 
-// "Now" first (undated), then the most recently started
+// "Now" lists everything still going on: undated first, then the most recently started
 const current = events.filter(isCurrent).reverse().sort((a, b) => Number(hasDate(a)) - Number(hasDate(b)));
-const past = events.filter(e => !isCurrent(e)).reverse();
+
+// The path, newest first: plain events, plus a start marker for every range and an end marker for ranges that ended
+type Station = { kind: 'event' | 'start' | 'end'; e: TimelineEvent; id: number; date: number };
+const stations: Station[] = events.flatMap((e, id): Station[] => {
+  if (!hasDate(e)) return [];
+  if (!isRange(e)) return [{ kind: 'event', e, id, date: dateValue(e.year) }];
+  const start: Station = { kind: 'start', e, id, date: dateValue(e.year) };
+  return e.until ? [start, { kind: 'end', e, id, date: dateValue(e.until) }] : [start];
+}).sort((a, b) => b.date - a.date);
 
 // Each row is pushed sideways along an arc (right → left → right), so the curve drawn
 // through the dots reads as a trajectory rising towards "now"
-const rows = (current.length ? 1 : 0) + past.length;
+const rows = (current.length ? 1 : 0) + stations.length;
 const offsetAt = (i: number) => {
   const t = rows > 1 ? i / (rows - 1) : 0;
   return ((1 - Math.sin(Math.PI * t)) * (1 - 0.45 * t)).toFixed(3);
 };
-const pastOffset = current.length ? 1 : 0;
+const stationOffset = current.length ? 1 : 0;
+
+// One moon per current thing; dated ones are the ranges the comet carries up (matched by index)
+const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, color: toneOf(e).hex }));
 ---
 
 <section id="timeline" class="py-20 md:py-28 px-5">
   <div class="page-container">
     <SectionHeader eyebrow="Journey" title="How I <em class='text-accent-light'>got here</em>" />
 
-    <ol id="trajectory" class="relative [--amp:1.75rem] md:[--amp:min(34vw,32rem)]">
-      <svg class="absolute inset-0 w-full h-full overflow-visible pointer-events-none" aria-hidden="true">
+    <ol id="trajectory" class="relative [--amp:1.75rem] md:[--amp:min(34vw,32rem)]" data-moons={JSON.stringify(moons)}>
+      <svg id="traj-svg" class="absolute inset-0 w-full h-full overflow-visible pointer-events-none" aria-hidden="true">
         <defs>
           <linearGradient id="traj-gradient" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0" stop-color="#3f3f46" stop-opacity="0.4" />
@@ -57,31 +81,21 @@ const pastOffset = current.length ? 1 : 0;
           </linearGradient>
         </defs>
         <path id="traj-path" d="" fill="none" stroke="url(#traj-gradient)" stroke-width="1.5" stroke-dasharray="4 6" />
-        <circle r="3" fill="#fde68a" class="motion-reduce:hidden drop-shadow-[0_0_6px_#fbbf24]">
-          <animateMotion dur="9s" repeatCount="indefinite" rotate="auto">
-            <mpath href="#traj-path" />
-          </animateMotion>
-        </circle>
+        <circle id="comet" r="3.5" fill="#fde68a" class="drop-shadow-[0_0_6px_#fbbf24]" opacity="0" />
       </svg>
 
       {current.length > 0 && (
         <li class="reveal relative pb-12" style={`padding-left: calc(${offsetAt(0)} * var(--amp) + 2.75rem)`}>
-          <!-- "Now" planet; everything still ongoing orbits it as a moon and travels with it -->
-          <span class="traj-dot absolute top-0 w-5 h-5 -ml-1 rounded-full bg-accent-light shadow-[0_0_18px] shadow-accent-light/60" style={`left: calc(${offsetAt(0)} * var(--amp))`}>
-            {current.map((e, k) => (
-              <span
-                class={`moon absolute left-1/2 top-1/2 -ml-[3px] -mt-[3px] w-1.5 h-1.5 rounded-full ${moon[e.type] ?? 'bg-zinc-400'}`}
-                style={`--r: ${16 + k * 7}px; --start: ${k * 137}deg; animation-duration: ${5 + k * 2.5}s`}
-              />
-            ))}
-          </span>
+          <!-- "Now" planet; everything still ongoing orbits it as a moon -->
+          <!-- "Now" planet; the script puts a moon around it for everything still going on -->
+          <span class="traj-dot now-dot absolute top-0 w-5 h-5 -ml-1 rounded-full bg-accent-light shadow-[0_0_18px] shadow-accent-light/60" style={`left: calc(${offsetAt(0)} * var(--amp))`} />
 
           <p class="font-mono text-[11px] uppercase tracking-widest text-accent-light mb-3">Now</p>
           <div class="grid gap-6">
             {current.map(e => (
               <article>
                 <h3 class="flex items-center gap-2.5 text-zinc-50 font-medium text-lg leading-snug">
-                  <span class={`w-1.5 h-1.5 shrink-0 rounded-full ${moon[e.type] ?? 'bg-zinc-400'}`} />
+                  <span class={`w-1.5 h-1.5 shrink-0 rounded-full ${toneOf(e).bg}`} />
                   {e.title}
                 </h3>
                 <p class="font-mono text-xs text-zinc-500 mb-2 pl-4">
@@ -94,18 +108,45 @@ const pastOffset = current.length ? 1 : 0;
         </li>
       )}
 
-      {past.map((e, i) => {
-        const x = offsetAt(i + pastOffset);
-        return (
-          <li class="reveal relative pb-10 last:pb-0" style={`padding-left: calc(${x} * var(--amp) + 2.25rem)`}>
-            <span
-              class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`}
-              style={`left: calc(${x} * var(--amp))`}
-            />
+      {stations.map((st, i) => {
+        const { e } = st;
+        const x = offsetAt(i + stationOffset);
+        const pad = `padding-left: calc(${x} * var(--amp) + 2.25rem)`;
+        const left = `left: calc(${x} * var(--amp))`;
+        if (st.kind === 'event') return (
+          <li class="reveal relative pb-10 last:pb-0" style={pad}>
+            <span class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`} style={left} />
             <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500 mb-1">{e.year}</p>
             <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
             <p class="font-mono text-xs text-zinc-500 mb-2">{e.place}</p>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
+          </li>
+        );
+        // Start / end of something that spans time: the comet collects it at the start and drops it at the end
+        const ended = st.kind === 'end';
+        return (
+          <li class="reveal relative pb-10 last:pb-0" style={pad}>
+            <span
+              class={`traj-dot absolute top-0.5 w-3 h-3 rounded-full border-2 ${toneOf(e).border} ${ended ? toneOf(e).bg : ''} transition-opacity duration-300`}
+              style={left}
+              data-range={st.id}
+              data-kind={st.kind}
+              data-color={toneOf(e).hex}
+            />
+            <p class="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+              {ended ? e.until : e.year} <span class="text-zinc-600">· {ended ? 'ended' : 'started'}</span>
+            </p>
+            {ended ? (
+              <>
+                <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
+                <p class="font-mono text-xs text-zinc-500 mb-2">{e.place} · {e.year} – {e.until}</p>
+                <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
+              </>
+            ) : (
+              <p class="text-sm text-zinc-400">
+                {e.title} <span class="text-zinc-600">{e.until ? `↑ until ${e.until}` : '↑ still going'}</span>
+              </p>
+            )}
           </li>
         );
       })}
@@ -113,31 +154,58 @@ const pastOffset = current.length ? 1 : 0;
   </div>
 </section>
 
-<style>
-  .moon {
-    transform: rotate(var(--start)) translateX(var(--r));
-    animation: moon-orbit linear infinite;
-  }
-  @keyframes moon-orbit {
-    from { transform: rotate(var(--start)) translateX(var(--r)); }
-    to { transform: rotate(calc(var(--start) + 360deg)) translateX(var(--r)); }
-  }
-</style>
 
 <script>
+  const SVG_NS = 'http://www.w3.org/2000/svg';
   const list = document.getElementById('trajectory')!;
-  const path = document.getElementById('traj-path')!;
+  const svg = document.getElementById('traj-svg') as unknown as SVGSVGElement;
+  const path = document.getElementById('traj-path') as unknown as SVGPathElement;
+  const comet = document.getElementById('comet') as unknown as SVGCircleElement;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const moonSpecs: { range: number | null; color: string }[] = JSON.parse(list.dataset.moons ?? '[]');
 
-  // Smooth curve through the dot centres (Catmull-Rom → cubic Bézier), oldest first so the comet climbs.
-  // offsetLeft/offsetTop ignore transforms, so the reveal animation doesn't skew the measurement.
+  type Range = { id: number; start: number; end: number | null; startDot: HTMLElement; carrier: SVGCircleElement; segment: SVGPathElement };
+  type Moon = { range: number | null; el: SVGCircleElement; r: number; phase: number; period: number; shown: boolean };
+
+  let ranges: Range[] = [];
+  let moons: Moon[] = [];
+  let length = 0;
+  let now = { x: 0, y: 0 };
+
+  const circle = (r: number, fill: string) => {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('r', `${r}`);
+    c.setAttribute('fill', fill);
+    svg.appendChild(c);
+    return c;
+  };
+  const place = (c: SVGCircleElement, p: { x: number; y: number }, opacity: number) => {
+    c.setAttribute('cx', `${p.x}`);
+    c.setAttribute('cy', `${p.y}`);
+    c.setAttribute('opacity', `${opacity}`);
+  };
+
+  // offsetLeft/offsetTop ignore transforms, so the reveal animation doesn't skew the measurement
+  const centre = (dot: HTMLElement) => {
+    const li = dot.parentElement!;
+    return { x: li.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2, y: li.offsetTop + dot.offsetTop + dot.offsetHeight / 2 };
+  };
+
+  // Distance along the path of the point closest to p
+  const lengthAt = (p: { x: number; y: number }) => {
+    let best = 0, bestDist = Infinity;
+    for (let s = 0; s <= length; s += 2) {
+      const q = path.getPointAtLength(s);
+      const dist = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
+      if (dist < bestDist) { bestDist = dist; best = s; }
+    }
+    return best;
+  };
+
+  // Smooth curve through the dot centres (Catmull-Rom → cubic Bézier), oldest first so the comet climbs
   function draw() {
-    const pts = [...list.querySelectorAll<HTMLElement>('.traj-dot')].map((dot) => {
-      const li = dot.parentElement!;
-      return {
-        x: li.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2,
-        y: li.offsetTop + dot.offsetTop + dot.offsetHeight / 2,
-      };
-    }).reverse();
+    const dots = [...list.querySelectorAll<HTMLElement>('.traj-dot')].reverse();
+    const pts = dots.map(centre);
     if (pts.length < 2) return;
 
     let d = `M ${pts[0].x} ${pts[0].y}`;
@@ -151,9 +219,96 @@ const pastOffset = current.length ? 1 : 0;
       d += ` C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
     }
     path.setAttribute('d', d);
+    length = path.getTotalLength();
+    now = pts[pts.length - 1];
+
+    // Ranges: a coloured stretch of path from where something started to where it ended (or to now)
+    ranges.forEach((r) => { r.carrier.remove(); r.segment.remove(); });
+    const byId = new Map<number, Range>();
+    for (const dot of dots.filter((el) => el.dataset.range !== undefined)) {
+      const id = Number(dot.dataset.range);
+      const at = lengthAt(centre(dot));
+      let range = byId.get(id);
+      if (!range) {
+        const segment = document.createElementNS(SVG_NS, 'path');
+        segment.setAttribute('fill', 'none');
+        segment.setAttribute('stroke', dot.dataset.color ?? '#a1a1aa');
+        segment.setAttribute('stroke-width', '2.5');
+        segment.setAttribute('stroke-linecap', 'round');
+        segment.setAttribute('opacity', '0.45');
+        svg.insertBefore(segment, comet);
+        range = { id, start: at, end: null, startDot: dot, carrier: circle(3, dot.dataset.color ?? '#a1a1aa'), segment };
+        byId.set(id, range);
+      }
+      if (dot.dataset.kind === 'end') range.end = at;
+      else { range.start = at; range.startDot = dot; }
+    }
+    ranges = [...byId.values()];
+    for (const r of ranges) {
+      const stop = r.end ?? length;
+      r.segment.setAttribute('d', d);
+      r.segment.setAttribute('stroke-dasharray', `0 ${r.start} ${stop - r.start} ${length * 2}`);
+      r.carrier.setAttribute('opacity', '0');
+    }
+
+    // Moons around "now", one per thing still going on; carried ones appear once the comet brings them
+    const shown = new Map(moons.map((m) => [m.range, m.shown]));
+    moons.forEach((m) => m.el.remove());
+    moons = moonSpecs.map((spec, k) => ({
+      range: spec.range,
+      el: circle(2.5, spec.color),
+      r: 17 + k * 7,
+      phase: k * 2.4,
+      period: 5000 + k * 2500,
+      shown: reduced || spec.range === null || (shown.get(spec.range) ?? false),
+    }));
+    if (reduced) renderMoons(0);
+  }
+
+  function renderMoons(time: number) {
+    for (const m of moons) {
+      const a = m.phase + (time / m.period) * Math.PI * 2;
+      place(m.el, { x: now.x + Math.cos(a) * m.r, y: now.y + Math.sin(a) * m.r }, m.shown ? 1 : 0);
+    }
+  }
+
+  // One cycle: the comet climbs from the first entry to "now". Anything that spans time is picked up
+  // where it started, trails behind the comet, and is dropped where it ended — or, if it's still going,
+  // carried all the way up to join the moons around "now".
+  const TRAVEL = 9000, HOLD = 1400, GAP = 12;
+  let visible = false;
+
+  function frame(time: number) {
+    if (visible && length) {
+      const t = time % (TRAVEL + HOLD);
+      const s = Math.min(t / TRAVEL, 1) * length;
+      const fade = t > TRAVEL ? 1 - (t - TRAVEL) / HOLD : 1;
+      place(comet, path.getPointAtLength(s), fade);
+
+      // Most recently collected rides right behind the comet
+      const carried = ranges.filter((r) => s >= r.start && (r.end === null || s < r.end + GAP)).sort((a, b) => b.start - a.start);
+      for (const r of ranges) {
+        r.startDot.style.opacity = s >= r.start ? '0.35' : '1';
+        const k = carried.indexOf(r);
+        if (k < 0) { r.carrier.setAttribute('opacity', '0'); continue; }
+        const along = Math.min(Math.max(s - GAP * (k + 1), r.start), r.end ?? length);
+        place(r.carrier, path.getPointAtLength(along), r.end === null ? fade : 1);
+        if (r.end === null && t > TRAVEL) {
+          const m = moons.find((mm) => mm.range === r.id);
+          if (m) m.shown = true;
+        }
+      }
+    }
+    renderMoons(time);
+    requestAnimationFrame(frame);
   }
 
   new ResizeObserver(draw).observe(list);
   document.fonts?.ready.then(draw);
   draw();
+
+  if (!reduced) {
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(list);
+    requestAnimationFrame(frame);
+  }
 </script>
