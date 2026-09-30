@@ -29,18 +29,19 @@
     "type": "graduation"
   },
   {
+    "year": "Oct 2025",
+    "title": "Physics Student",
+    "place": "Christian-Albrechts-Universität Kiel",
+    "description": "Studying physics at CAU Kiel, bridging the gap between scientific thinking and software — simulations, data analysis, and everything in between.",
+    "type": "education",
+    "ongoing": true
+  },
+  {
     "year": "Aug 2026",
     "title": "Student Research Assistant at DAPHNE4NFDI",
     "place": "AG Murphy, CAU Kiel",
     "description": "Joined the DAPHNE4NFDI consortium, building research data tools for photon and neutron science — like automating IGSN sample registration so lab samples get persistent identifiers.",
     "type": "work",
     "ongoing": true
-  },
-  {
-    "year": "Present",
-    "title": "Physics Student",
-    "place": "Christian-Albrechts-Universität Kiel",
-    "description": "Studying physics at CAU Kiel, bridging the gap between scientific thinking and software — simulations, data analysis, and everything in between.",
-    "type": "education"
   }
 ]
