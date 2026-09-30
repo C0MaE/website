@@ -7,6 +7,7 @@ interface ContactData {
 }
 
 const { email, socials } = await fetchData<ContactData>('contact.json');
+const { name } = await fetchData<{ name?: string }>('hero.json');
 
 // Keep the address out of the HTML so simple scrapers can't harvest it; the browser decodes it on load
 const encodedEmail = Buffer.from(email.split('').reverse().join('')).toString('base64');
@@ -52,7 +53,7 @@ const iconMap: Record<string, string> = {
   </div>
 
   <footer class="page-container mt-24 pt-6 border-t border-zinc-900 flex flex-col sm:flex-row justify-between gap-2 font-mono text-xs text-zinc-600">
-    <span>© {new Date().getFullYear()} CoMaE</span>
+    <span>© {new Date().getFullYear()} {name ? `${name} (CoMaE)` : 'CoMaE'}</span>
     <span>Built with Astro · Kiel</span>
   </footer>
 </section>

@@ -7,12 +7,14 @@ interface Props {
   description?: string;
   /** schema.org data for this page */
   jsonLd?: object;
+  author?: string;
 }
 
 const {
   title = SITE_NAME,
   description = 'Personal portfolio of CoMaE — physics student building fullstack apps, writing Rust, and crafting simulations.',
   jsonLd,
+  author = SITE_NAME,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, SITE_URL).href;
@@ -28,7 +30,7 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="author" content={SITE_NAME} />
+    <meta name="author" content={author} />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#09090b" />
     <link rel="canonical" href={canonicalURL} />
@@ -41,7 +43,7 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={`${SITE_NAME} — ${description}`} />
+    <meta property="og:image:alt" content={description} />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:locale" content="en_US" />
 

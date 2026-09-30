@@ -2,12 +2,14 @@
 import { fetchData } from '../lib/fetchData';
 
 interface HeroData {
+  /** Real name, shown above the handle so people searching for it find this page */
+  name?: string;
   typewriterWords: string[];
   bio: string;
   now?: { label: string; href?: string }[];
 }
 
-const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('hero.json');
+const { name, typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('hero.json');
 ---
 
 <section id="hero" class="relative overflow-hidden px-5 pt-28 pb-16 md:pt-36 md:pb-24">
@@ -18,7 +20,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 
   <div class="relative z-10 page-container">
     <p class="font-mono text-xs text-zinc-500 tracking-wider mb-6 opacity-0-init animate-fade-in">
-      Kiel, Germany · 54.32° N
+      {name && <><span class="text-zinc-300">{name}</span> · </>}Kiel, Germany · 54.32° N
     </p>
 
     <h1 class="font-serif text-7xl sm:text-8xl md:text-9xl 3xl:text-[11rem] leading-[0.9] text-zinc-50 mb-5 opacity-0-init animate-slide-up animate-delay-100">

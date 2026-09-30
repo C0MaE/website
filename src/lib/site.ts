@@ -3,7 +3,7 @@ import { fetchData } from './fetchData';
 export const SITE_URL = 'https://comae.dev';
 export const SITE_NAME = 'CoMaE';
 
-export interface Hero { typewriterWords: string[]; bio: string; now?: { label: string; href?: string }[] }
+export interface Hero { name?: string; typewriterWords: string[]; bio: string; now?: { label: string; href?: string }[] }
 export interface Project { title: string; description: string; tags: string[]; github: string | null; live: string | null; featured: boolean; image: string | null }
 export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null }
 export interface SkillCategory { name: string; icon: string; skills: string[] }
@@ -25,16 +25,18 @@ export async function loadSite() {
 export type Site = Awaited<ReturnType<typeof loadSite>>;
 
 const absolute = (path: string) => new URL(path, SITE_URL).href;
+// "Jannis Koberg (CoMaE)" when a real name is set, otherwise just the handle
+const displayName = (s: Site) => (s.hero.name ? `${s.hero.name} (${SITE_NAME})` : SITE_NAME);
 // End a sentence with a full stop unless it already has one
 const sentence = (t: string) => (/[.!?]$/.test(t.trim()) ? t.trim() : `${t.trim()}.`);
 const isCurrent = (e: TimelineEvent) => !e.until && (e.ongoing || !/\d{4}/.test(e.year));
 
-export const pageTitle = (s: Site) => `${SITE_NAME} — ${s.hero.typewriterWords.slice(0, 2).join(' & ')} in Kiel`;
+export const pageTitle = (s: Site) => `${displayName(s)} — ${s.hero.typewriterWords.slice(0, 2).join(' & ')} in Kiel`;
 
 // Kept around 160 characters, which is what search results show
 export function pageDescription(s: Site) {
   const work = [...s.research, ...s.projects.filter(p => p.featured)].slice(0, 3).map(p => p.title.split(' – ')[0]);
-  return `${SITE_NAME}: physics student at Kiel University and fullstack developer writing Rust, research software and simulations — ${work.join(', ')} and more.`;
+  return `${displayName(s)}: physics student at Kiel University and fullstack developer writing Rust, research software and simulations — ${work.join(', ')} and more.`;
 }
 
 /** schema.org graph: who this is, what they work on, and the site itself */
@@ -67,7 +69,12 @@ export function structuredData(s: Site) {
       {
         '@type': 'Person',
         '@id': person,
-        name: SITE_NAME,
+        name: s.hero.name ?? SITE_NAME,
+        ...(s.hero.name && {
+          alternateName: SITE_NAME,
+          givenName: s.hero.name.split(' ')[0],
+          familyName: s.hero.name.split(' ').slice(1).join(' '),
+        }),
         url: SITE_URL,
         image: absolute('/apple-touch-icon.png'),
         description: pageDescription(s),
@@ -105,13 +112,13 @@ export function structuredData(s: Site) {
 export function llmsTxt(s: Site) {
   const link = (title: string, url: string | null) => (url ? `[${title}](${url})` : title);
   const lines = [
-    `# ${SITE_NAME}`,
+    `# ${displayName(s)}`,
     '',
     `> ${pageDescription(s)}`,
     '',
     s.hero.bio,
     '',
-    `Roles: ${s.hero.typewriterWords.join(', ')}. Based in Kiel, Germany.`,
+    `${s.hero.name ? `Real name ${s.hero.name}, known online as ${SITE_NAME}. ` : ''}Roles: ${s.hero.typewriterWords.join(', ')}. Based in Kiel, Germany.`,
     '',
     '## Now',
     '',

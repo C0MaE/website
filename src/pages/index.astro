@@ -12,7 +12,7 @@ import { loadSite, pageTitle, pageDescription, structuredData } from '../lib/sit
 const site = await loadSite();
 ---
 
-<BaseLayout title={pageTitle(site)} description={pageDescription(site)} jsonLd={structuredData(site)}>
+<BaseLayout title={pageTitle(site)} description={pageDescription(site)} jsonLd={structuredData(site)} author={site.hero.name}>
   <Navbar />
   <main>
     <Hero />
