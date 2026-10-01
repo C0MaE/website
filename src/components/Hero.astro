@@ -11,9 +11,19 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 ---
 
 <section id="hero" class="relative overflow-hidden px-5 pt-28 pb-16 md:pt-36 md:pb-24">
-  <!-- Orbit simulation: faint backdrop behind the name on phones, beside the text on desktop -->
-  <div class="absolute inset-x-0 top-8 h-80 opacity-30 md:opacity-100 md:inset-x-auto md:h-auto md:right-[-8%] md:top-1/2 md:-translate-y-1/2 md:w-[62%] md:aspect-square pointer-events-none" aria-hidden="true">
-    <canvas id="orbits" class="w-full h-full"></canvas>
+  <!-- The solar system as it is right now: faint backdrop behind the name on phones and tablets, beside the text on desktop -->
+  <div class="absolute inset-x-0 top-8 h-80 opacity-30 lg:opacity-100 lg:inset-0 lg:h-auto lg:px-5 pointer-events-none" aria-hidden="true">
+    <!-- Aligned with the content column so every planet stays on screen, however wide the window -->
+    <div class="relative h-full lg:page-container">
+      <div class="absolute inset-0 lg:inset-auto lg:right-0 lg:top-1/2 lg:-translate-y-1/2 lg:w-[52%] xl:w-[60%] lg:aspect-square">
+        <canvas id="orbits" class="w-full h-full"></canvas>
+      </div>
+    </div>
+  </div>
+  <div id="planet-tip" class="absolute z-20 pointer-events-none opacity-0 transition-opacity duration-150 px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950/90 backdrop-blur-sm whitespace-nowrap" aria-hidden="true">
+    <p class="font-serif text-lg leading-tight text-zinc-50" data-name></p>
+    <p class="font-mono text-[11px] text-zinc-400" data-line1></p>
+    <p class="font-mono text-[11px] text-muted" data-line2></p>
   </div>
 
   <div class="relative z-10 page-container">
@@ -61,21 +71,41 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 </section>
 
 <script>
+  import { PLANETS, positionAt, orbitAt, julianDate, LIGHT_SECONDS_PER_AU } from '../lib/planets';
+
+  const section = document.getElementById('hero')!;
   const canvas = document.getElementById('orbits') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
+  const tip = document.getElementById('planet-tip')!;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wide = matchMedia('(min-width: 1024px)'); // system beside the text rather than a faint backdrop
 
-  // Circular orbits; angular speed from Kepler's third law (T ∝ r^1.5)
-  const bodies = [
-    { r: 0.16, size: 2.2, color: '#a1a1aa', phase: 0.4 },
-    { r: 0.26, size: 3.2, color: '#fbbf24', phase: 2.1 },
-    { r: 0.38, size: 3.6, color: '#a78bfa', phase: 4.0 },
-    { r: 0.52, size: 2.8, color: '#f87171', phase: 1.2 },
-    { r: 0.78, size: 6.0, color: '#fcd34d', phase: 5.3 },
-  ];
-  const TILT = 0.42; // vertical squash → seen at an inclination
+  const LOOK: Record<string, { color: string; size: number }> = {
+    Mercury: { color: '#a8a29e', size: 2 },
+    Venus: { color: '#fde68a', size: 2.8 },
+    Earth: { color: '#60a5fa', size: 3 },
+    Mars: { color: '#f87171', size: 2.4 },
+    Jupiter: { color: '#fdba74', size: 5.4 },
+    Saturn: { color: '#fcd34d', size: 4.4 },
+    Uranus: { color: '#67e8f9', size: 3.3 },
+    Neptune: { color: '#818cf8', size: 3.2 },
+  };
+  const TILT = 0.42;               // vertical squash: the ecliptic seen at an inclination
+  // Distances on a log scale so Mercury and Neptune fit into one picture; angles are real
+  const R_IN = 0.17, R_OUT = 0.95, AU_IN = 0.3, AU_OUT = 30.4;
+  const K = (R_OUT - R_IN) / Math.log(AU_OUT / AU_IN);
+  const radial = (au: number) => R_IN + K * Math.log(au / AU_IN);
+  const INTRO_DAYS = 90, INTRO_MS = 3200;      // fast-forward the last three months on load, landing on today
+  const LIGHT_SPEEDUP = 1700, PULSE_EVERY = 9000; // a sunlight front every 9 s, Neptune reached after ~9 s
+  const DAY_MS = 86400000;
+  const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  let w = 0, h = 0, dpr = 1, visible = true;
+  const period = (a: number) => 365.25 * Math.pow(a, 1.5); // days, Kepler's third law
+  const orbits = PLANETS.map(p => orbitAt(p, julianDate(Date.now())));
+  let w = 0, h = 0, dpr = 1, cx = 0, cy = 0, R = 0, scale = 1, visible = true;
+  let start = performance.now();
+  let hovered: string | null = null;
+  let shown: { name: string; x: number; y: number }[] = [];
 
   function resize() {
     dpr = Math.min(devicePixelRatio || 1, 2);
@@ -83,52 +113,167 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     w = rect.width; h = rect.height;
     canvas.width = w * dpr; canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = w / 2; cy = h / 2; R = Math.min(w, h * 1.6) * 0.5;
+    scale = Math.min(Math.max(R / 380, 0.7), 1.3);
+  }
+
+  // Ecliptic position [AU] to canvas pixels; "back" is the far side of the tilted plane
+  function project(p: { x: number; y: number }) {
+    const r = Math.hypot(p.x, p.y);
+    const k = (radial(r) / r) * R;
+    return { x: cx + p.x * k, y: cy - p.y * k * TILT, back: p.y > 0, r };
+  }
+
+  function lightTime(seconds: number) {
+    const m = Math.round(seconds / 60);
+    if (m < 60) return `${m} min`;
+    return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`;
   }
 
   function draw(t: number) {
     ctx.clearRect(0, 0, w, h);
-    const cx = w / 2, cy = h / 2, R = Math.min(w, h * 1.6) * 0.5;
+    const intro = reduced ? 1 : Math.min((t - start) / INTRO_MS, 1);
+    const ease = 1 - Math.pow(1 - intro, 3);
+    const jd = julianDate(Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS);
+    // Sunlight front, sent out once the system has settled on today
+    const since = (t - start - INTRO_MS) % PULSE_EVERY;
+    const lightAU = !reduced && t - start > INTRO_MS ? (since / 1000) * LIGHT_SPEEDUP / LIGHT_SECONDS_PER_AU : -1;
 
-    // Orbit rings
+    // Orbits
     ctx.lineWidth = 1;
-    for (const b of bodies) {
-      ctx.strokeStyle = 'rgba(161,161,170,0.12)';
+    PLANETS.forEach((p, i) => {
+      ctx.strokeStyle = p.name === hovered ? 'rgba(212,212,216,0.4)' : 'rgba(161,161,170,0.12)';
       ctx.beginPath();
-      ctx.ellipse(cx, cy, b.r * R, b.r * R * TILT, 0, 0, Math.PI * 2);
+      orbits[i].forEach((q, j) => { const s = project(q); j ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
       ctx.stroke();
+    });
+
+    if (lightAU > AU_IN && lightAU < AU_OUT * 1.05) {
+      const rr = radial(lightAU) * R;
+      ctx.strokeStyle = `rgba(253,230,138,${0.16 * (1 - lightAU / (AU_OUT * 1.05))})`;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * TILT, 0, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // Star
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.14);
+    const bodies = PLANETS.map(p => {
+      const now = project(positionAt(p, jd));
+      const span = period(p.el[0]) * 0.1;
+      const trail = Array.from({ length: 24 }, (_, k) => project(positionAt(p, jd - ((k + 1) / 24) * span)));
+      // Brightens briefly while the sunlight front passes
+      const lit = lightAU > 0 ? Math.exp(-(((lightAU - now.r) / (0.09 * now.r)) ** 2)) : 0;
+      return { p, now, trail, lit };
+    });
+    shown = bodies.map(b => ({ name: b.p.name, x: b.now.x, y: b.now.y }));
+
+    const drawBody = ({ p, now, trail, lit }: (typeof bodies)[number]) => {
+      const { color, size: s0 } = LOOK[p.name];
+      const size = s0 * scale;
+      // Tapered trail along the path it just came from
+      ctx.strokeStyle = color; ctx.lineCap = 'round';
+      trail.forEach((q, k) => {
+        const prev = k ? trail[k - 1] : now, f = 1 - k / trail.length;
+        ctx.globalAlpha = f * 0.4; ctx.lineWidth = size * 1.1 * f + 0.4;
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      });
+      ctx.lineWidth = 1; ctx.fillStyle = color;
+      ctx.globalAlpha = now.back ? 0.8 : 1;
+      if (lit > 0.02) {
+        const g = ctx.createRadialGradient(now.x, now.y, 0, now.x, now.y, size * 4);
+        g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = 0.5 * lit; ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(now.x, now.y, size * 4, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = now.back ? 0.8 : 1; ctx.fillStyle = color;
+      }
+      ctx.beginPath(); ctx.arc(now.x, now.y, size, 0, Math.PI * 2); ctx.fill();
+      if (p.name === 'Saturn') {
+        ctx.strokeStyle = color; ctx.globalAlpha *= 0.6;
+        ctx.beginPath(); ctx.ellipse(now.x, now.y, size * 2.1, size * 0.75, -0.35, 0, Math.PI * 2); ctx.stroke();
+      }
+      if (p.name === hovered) {
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e4e4e7';
+        ctx.beginPath(); ctx.arc(now.x, now.y, size + 5, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    // Far side first, then the Sun, then the near side, so planets pass behind and in front of it
+    bodies.filter(b => b.now.back).forEach(drawBody);
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.13);
     glow.addColorStop(0, 'rgba(253,230,138,0.95)');
     glow.addColorStop(0.25, 'rgba(251,191,36,0.35)');
     glow.addColorStop(1, 'rgba(124,58,237,0)');
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, cy, R * 0.14, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.13, 0, Math.PI * 2); ctx.fill();
+    bodies.filter(b => !b.now.back).forEach(drawBody);
 
-    // Planets with short trails
-    for (const b of bodies) {
-      const omega = 0.9 / Math.pow(b.r / 0.16, 1.5);
-      const a = b.phase + t * 0.0004 * omega;
-      for (let k = 18; k >= 0; k--) {
-        const ak = a - k * 0.035;
-        const x = cx + Math.cos(ak) * b.r * R;
-        const y = cy + Math.sin(ak) * b.r * R * TILT;
-        ctx.globalAlpha = k === 0 ? 1 : (1 - k / 18) * 0.35;
-        ctx.fillStyle = b.color;
-        ctx.beginPath(); ctx.arc(x, y, k === 0 ? b.size : b.size * 0.6, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
+    // Caption with the date being shown; counts up to today during the intro
+    if (wide.matches) {
+      const y = cy + R_OUT * R * TILT + 34;
+      ctx.textAlign = 'center';
+      ctx.font = '500 11px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#8f8f98';
+      const day = dateFmt.format(Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS).toUpperCase();
+      ctx.fillText(intro < 1 ? `THE SOLAR SYSTEM · ${day}` : `THE SOLAR SYSTEM TODAY · ${day}`, cx, y);
+      ctx.font = '11px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#7c7c85';
+      ctx.fillText('real positions · distances on a log scale', cx, y + 18);
     }
   }
 
+  function showTip(name: string | null) {
+    hovered = name;
+    const b = shown.find(s => s.name === name);
+    if (!name || !b) { tip.style.opacity = '0'; return; }
+    const jd = julianDate(Date.now());
+    const p = PLANETS.find(q => q.name === name)!;
+    const pos = positionAt(p, jd), earth = positionAt(PLANETS[2], jd);
+    const fromSun = Math.hypot(pos.x, pos.y, pos.z);
+    const fromEarth = Math.hypot(pos.x - earth.x, pos.y - earth.y, pos.z - earth.z);
+    tip.querySelector('[data-name]')!.textContent = name === 'Earth' ? 'Earth — you are here' : name;
+    tip.querySelector('[data-line1]')!.textContent = `${fromSun.toFixed(2)} AU from the Sun`;
+    tip.querySelector('[data-line2]')!.textContent = name === 'Earth'
+      ? `sunlight takes ${Math.floor(fromSun * LIGHT_SECONDS_PER_AU / 60)} min ${Math.round(fromSun * LIGHT_SECONDS_PER_AU % 60)} s`
+      : `its light takes ${lightTime(fromEarth * LIGHT_SECONDS_PER_AU)} to get here`;
+    placeTip();
+    tip.style.opacity = '1';
+  }
+
+  // Keep the tooltip next to its planet (it still moves during the intro)
+  function placeTip() {
+    const b = shown.find(s => s.name === hovered);
+    if (!b) return;
+    const c = canvas.getBoundingClientRect(), sec = section.getBoundingClientRect();
+    const x = c.left - sec.left + b.x, y = c.top - sec.top + b.y;
+    const flip = x + 16 + tip.offsetWidth > sec.width - 8;
+    tip.style.left = `${flip ? x - 16 - tip.offsetWidth : x + 16}px`;
+    tip.style.top = `${y - tip.offsetHeight - 10}px`;
+  }
+
+  // Hover (or tap) a planet; only where the system sits beside the text, not as the backdrop
+  function pick(e: PointerEvent) {
+    if (!wide.matches) return;
+    const c = canvas.getBoundingClientRect();
+    const x = e.clientX - c.left, y = e.clientY - c.top;
+    const reach = e.pointerType === 'touch' ? 26 : 16;
+    let best: string | null = null, bestD = reach;
+    for (const s of shown) { const d = Math.hypot(s.x - x, s.y - y); if (d < bestD) { bestD = d; best = s.name; } }
+    if (best !== hovered) showTip(best);
+    if (reduced) draw(performance.now());
+  }
+  section.addEventListener('pointermove', pick);
+  section.addEventListener('pointerdown', pick);
+  section.addEventListener('pointerleave', () => { showTip(null); if (reduced) draw(performance.now()); });
+
   function loop(t: number) {
-    if (visible) draw(t);
+    if (visible) { draw(t); if (hovered) placeTip(); }
     requestAnimationFrame(loop);
   }
 
   resize();
-  addEventListener('resize', resize);
+  addEventListener('resize', () => { resize(); if (reduced) draw(performance.now()); });
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
-  if (reduced) draw(8000); else requestAnimationFrame(loop);
+  start = performance.now();
+  if (reduced) {
+    draw(start);
+    document.fonts.ready.then(() => draw(performance.now())); // redraw the caption in the right font
+  } else requestAnimationFrame(loop);
 </script>
