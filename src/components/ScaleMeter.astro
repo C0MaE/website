@@ -1,0 +1,85 @@
+---
+// Scrolling the page is a trip from the Sun to Neptune, true to scale
+import { PLANETS } from '../lib/planets';
+
+const NEPTUNE = PLANETS[PLANETS.length - 1].el[0];
+const COLORS: Record<string, string> = {
+  Mercury: '#a8a29e', Venus: '#fde68a', Earth: '#60a5fa', Mars: '#f87171',
+  Jupiter: '#fdba74', Saturn: '#fcd34d', Uranus: '#67e8f9', Neptune: '#818cf8',
+};
+const ticks = PLANETS.map(p => ({ name: p.name, top: (p.el[0] / NEPTUNE) * 100, color: COLORS[p.name] }));
+---
+
+<!-- Desktop: a thin track at the right edge with the planets at their real distances -->
+<div id="scale-meter" class="hidden lg:block fixed right-4 top-1/2 -translate-y-1/2 h-[56vh] w-3 z-40 pointer-events-none opacity-60" aria-hidden="true">
+  <span class="absolute left-1/2 -translate-x-1/2 inset-y-0 w-px bg-zinc-800"></span>
+  <span class="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 rounded-full bg-amber-300 shadow-[0_0_8px] shadow-amber-300/60"></span>
+  {ticks.map(t => (
+    <span class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full" style={`top:${t.top}%;background:${t.color}`}></span>
+  ))}
+  <span data-probe class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-0 w-2 h-2 rounded-full bg-amber-200 shadow-[0_0_10px] shadow-amber-300/80"></span>
+  <p data-label class="absolute right-5 -translate-y-1/2 top-0 whitespace-nowrap text-right font-mono text-[11px] leading-snug px-2 py-1 rounded-md bg-zinc-950/85 opacity-0 transition-opacity duration-300">
+    <span data-where class="block text-zinc-300"></span>
+    <span data-detail class="block text-muted"></span>
+  </p>
+</div>
+
+<!-- Phones and tablets: a small pill while scrolling -->
+<p id="scale-pill" class="lg:hidden fixed bottom-4 inset-x-0 mx-auto w-max max-w-[calc(100%-2rem)] z-40 pointer-events-none px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/90 backdrop-blur-sm font-mono text-[11px] text-zinc-300 opacity-0 transition-opacity duration-300" aria-hidden="true"></p>
+
+<script>
+  import { PLANETS, LIGHT_SECONDS_PER_AU } from '../lib/planets';
+
+  const KM_PER_AU = 149_597_871;
+  const NEPTUNE = PLANETS[PLANETS.length - 1].el[0];
+  const meter = document.getElementById('scale-meter')!;
+  const probe = meter.querySelector<HTMLElement>('[data-probe]')!;
+  const label = meter.querySelector<HTMLElement>('[data-label]')!;
+  const where = meter.querySelector<HTMLElement>('[data-where]')!;
+  const detail = meter.querySelector<HTMLElement>('[data-detail]')!;
+  const pill = document.getElementById('scale-pill')!;
+  const possessive = (name: string) => (name.endsWith('s') ? `${name}'` : `${name}'s`);
+
+  function lightTime(s: number) {
+    const m = Math.round(s / 60);
+    if (m < 1) return `${Math.round(s)} s`;
+    if (m < 60) return `${m} min`;
+    return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`;
+  }
+
+  // Where along the way the visitor is, in words
+  function describe(au: number, kmPerPx: number) {
+    if (au < 0.12) return { where: 'Leaving the Sun', detail: `true to scale · 1 px ≈ ${Number(kmPerPx.toPrecision(2)).toLocaleString('en-US')} km` };
+    const near = PLANETS.reduce((a, b) => (Math.abs(b.el[0] - au) < Math.abs(a.el[0] - au) ? b : a));
+    const tolerance = 70 * kmPerPx / KM_PER_AU;       // within ~70 px of an orbit counts as crossing it
+    let text: string;
+    if (Math.abs(near.el[0] - au) < tolerance) text = `Crossing ${possessive(near.name)} orbit`;
+    else {
+      const i = PLANETS.findIndex(p => p.el[0] > au);
+      text = i <= 0 ? (i === 0 ? "Inside Mercury's orbit" : 'Out at Neptune') : `Between ${PLANETS[i - 1].name} and ${PLANETS[i].name}`;
+    }
+    return { where: text, detail: `${au.toFixed(au < 10 ? 2 : 1)} AU · sunlight takes ${lightTime(au * LIGHT_SECONDS_PER_AU)}` };
+  }
+
+  let hideTimer = 0, queued = false;
+  function update() {
+    queued = false;
+    const scrollable = document.documentElement.scrollHeight - innerHeight;
+    if (scrollable <= 0) return;
+    const progress = Math.min(Math.max(scrollY / scrollable, 0), 1);
+    const au = progress * NEPTUNE;
+    const kmPerPx = (NEPTUNE * KM_PER_AU) / scrollable;
+    const text = describe(au, kmPerPx);
+    probe.style.top = label.style.top = `${progress * 100}%`;
+    where.textContent = text.where;
+    detail.textContent = text.detail;
+    pill.textContent = `${text.where} · ${text.detail.split(' · ')[0]}`;
+    label.style.opacity = pill.style.opacity = '1';
+    clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => { label.style.opacity = pill.style.opacity = '0'; }, 1600);
+  }
+
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+  // Place the probe without flashing the label on load
+  requestAnimationFrame(() => { update(); label.style.opacity = pill.style.opacity = '0'; });
+</script>

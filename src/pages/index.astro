@@ -7,6 +7,7 @@ import Research from '../components/Research.astro';
 import Skills from '../components/Skills.astro';
 import Timeline from '../components/Timeline.astro';
 import Contact from '../components/Contact.astro';
+import ScaleMeter from '../components/ScaleMeter.astro';
 import { loadSite, pageTitle, pageDescription, structuredData } from '../lib/site';
 
 const site = await loadSite();
@@ -14,6 +15,7 @@ const site = await loadSite();
 
 <BaseLayout title={pageTitle(site)} description={pageDescription(site)} jsonLd={structuredData(site)} author={site.hero.name}>
   <Navbar />
+  <ScaleMeter />
   <main>
     <Hero />
     <Research />
@@ -25,7 +27,6 @@ const site = await loadSite();
 </BaseLayout>
 
 <script>
-  // Intersection observer for scroll-reveal
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -39,7 +40,6 @@ const site = await loadSite();
     { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
   );
 
-  // Muted autoplay is unreliable on phones — start previews when they scroll into view
   const videoObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const video = entry.target as HTMLVideoElement;
