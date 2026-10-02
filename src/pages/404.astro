@@ -24,7 +24,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <!-- Mini game: brake the probe from its hyperbolic flyby into an orbit -->
     <div id="game" class="relative h-[26rem] -mx-5 mt-4 lg:m-0 lg:absolute lg:inset-y-0 lg:right-0 lg:left-[46%] lg:h-auto">
-      <canvas id="game-canvas" class="absolute inset-0 w-full h-full touch-none select-none cursor-crosshair" role="img" aria-label="Mini game: hold to fire the probe's retro-thrusters and brake it into an orbit around the planet"></canvas>
+      <canvas id="game-canvas" data-native-cursor class="absolute inset-0 w-full h-full touch-none select-none cursor-crosshair" role="img" aria-label="Mini game: hold to fire the probe's retro-thrusters and brake it into an orbit around the planet"></canvas>
 
       <div id="game-msg" class="absolute inset-x-0 top-4 lg:top-[13%] px-6 text-center pointer-events-none opacity-0 transition-opacity duration-300" aria-live="polite" inert>
         <p class="font-serif text-3xl md:text-4xl text-zinc-50" data-title></p>

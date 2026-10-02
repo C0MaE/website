@@ -12,7 +12,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 
 <section id="hero" class="relative overflow-hidden px-5 pt-28 pb-16 md:pt-36 md:pb-24">
   <!-- Background stars, gravitationally lensed around the mouse pointer -->
-  <canvas id="sky" class="absolute inset-0 w-full h-full pointer-events-none [mask-image:linear-gradient(to_bottom,black_65%,transparent)]" aria-hidden="true"></canvas>
+  <canvas id="sky" class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true"></canvas>
   <!-- The solar system as it is right now: faint backdrop behind the name on phones and tablets, beside the text on desktop -->
   <div class="absolute inset-x-0 top-8 h-80 opacity-30 lg:opacity-100 lg:inset-0 lg:h-auto lg:px-5 pointer-events-none" aria-hidden="true">
     <!-- Aligned with the content column so every planet stays on screen, however wide the window -->
@@ -76,9 +76,11 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   import { PLANETS, positionAt, orbitAt, julianDate, LIGHT_SECONDS_PER_AU } from '../lib/planets';
   import { advance, preview, circularSpeed, K2, type Comet, type Outcome } from '../lib/comet';
   import { mountLensedSky } from '../lib/lensing';
+  import { mountBlackHole } from '../lib/blackHole';
 
   const section = document.getElementById('hero')!;
   mountLensedSky(document.getElementById('sky') as HTMLCanvasElement, section);
+  mountBlackHole(section);
   const canvas = document.getElementById('orbits') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
   const tip = document.getElementById('planet-tip')!;
@@ -478,7 +480,12 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     let best: string | null = null, bestD = reach;
     for (const s of shown) { const d = Math.hypot(s.x - x, s.y - y); if (d < bestD) { bestD = d; best = s.name; } }
     if (best !== hovered) showTip(best);
-    if (playable(e)) section.style.cursor = overText(e) ? '' : best || onSun(x, y) ? 'pointer' : 'crosshair';
+    if (playable(e)) {
+      // With the black-hole pointer, clickable things just brighten its ring; otherwise use normal cursors
+      const clickable = !overText(e) && (!!best || onSun(x, y));
+      section.dataset.hot = clickable ? '1' : '0';
+      section.style.cursor = section.classList.contains('black-hole-cursor') ? '' : overText(e) ? '' : clickable ? 'pointer' : 'crosshair';
+    }
     if (reduced) draw(performance.now());
   }
 

@@ -73,7 +73,9 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
     <slot />
     <script>
       import { installConsole } from '../lib/console';
+      import { mountCursor } from '../lib/cursor';
       installConsole();
+      mountCursor();
     </script>
   </body>
 </html>

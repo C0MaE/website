@@ -53,6 +53,10 @@
   .animate-delay-400 { animation-delay: 400ms; }
   .animate-delay-500 { animation-delay: 500ms; }
   .opacity-0-init { opacity: 0; }
+  /* Elsewhere the pointer is a planet with a moon (lib/cursor.ts) */
+  .space-cursor, .space-cursor * { cursor: none; }
+  /* In the hero the mouse pointer becomes a black hole (lib/blackHole.ts) */
+  .black-hole-cursor, .black-hole-cursor * { cursor: none; }
   /* Headings red- or blueshifted while scrolling fast (set from ScaleMeter) */
   .doppler { filter: var(--doppler, none); }
 }

@@ -22,8 +22,8 @@ void main() {
   vec2 d = p - u_lens;
   vec2 src = p - u_re2 * d / max(dot(d, d), 1e-3);
   vec2 uv = src / u_size;
-  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0); return; }
-  gl_FragColor = texture2D(u_sky, uv);
+  vec4 col = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? vec4(0.0) : texture2D(u_sky, uv);
+  gl_FragColor = col * (1.0 - smoothstep(0.65, 1.0, v_uv.y));   // fade out towards the bottom of the hero
 }`;
 
 /** Deterministic, so the sky looks the same on every visit and after a resize */
@@ -90,7 +90,7 @@ export function mountLensedSky(sky: HTMLCanvasElement, area: HTMLElement) {
   }
   let w = 0, h = 0, dpr = 1;
   // Lens state: pointer target and the eased values actually drawn
-  let tx = 0, ty = 0, x = 0, y = 0, reTarget = 0, re = 0, raf = 0, last = 0, ready = false;
+  let x = 0, y = 0, reTarget = 0, re = 0, raf = 0, last = 0, ready = false;
 
   if (!gl) {
     // No (fast) WebGL: the sky without the lens
@@ -149,13 +149,13 @@ export function mountLensedSky(sky: HTMLCanvasElement, area: HTMLElement) {
     gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
   }
 
-  // Ease towards the pointer; stop the loop once everything has settled
+  // Fade the lens in and out; stop the loop once it has settled
   function tick(t: number) {
     const dt = Math.min((t - last) / 1000, 0.05); last = t;
-    const kp = 1 - Math.exp(-dt / 0.07), kr = 1 - Math.exp(-dt / 0.25);
-    x += (tx - x) * kp; y += (ty - y) * kp; re += (reTarget - re) * kr;
+    const kr = 1 - Math.exp(-dt / 0.25);
+    re += (reTarget - re) * kr;
     render();
-    const moving = Math.abs(tx - x) + Math.abs(ty - y) > 0.1 || Math.abs(reTarget - re) > 0.05;
+    const moving = Math.abs(reTarget - re) > 0.05;
     raf = moving ? requestAnimationFrame(tick) : 0;
     if (!moving && reTarget === 0) { re = 0; render(); }
   }
@@ -166,10 +166,11 @@ export function mountLensedSky(sky: HTMLCanvasElement, area: HTMLElement) {
   area.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return;
     const r = canvas.getBoundingClientRect();
-    tx = e.clientX - r.left; ty = e.clientY - r.top;
-    if (reTarget === 0) { x = tx; y = ty; }        // appear where the pointer is, then follow it
+    // Sits exactly under the pointer, which is drawn as the black hole (lib/blackHole.ts)
+    x = e.clientX - r.left; y = e.clientY - r.top;
     reTarget = einstein();
-    wake();
+    if (raf) return;
+    render(); if (Math.abs(reTarget - re) > 0.05) wake();
   });
   area.addEventListener('pointerleave', () => { reTarget = 0; wake(); });
 
