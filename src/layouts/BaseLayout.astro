@@ -71,5 +71,9 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
   </head>
   <body>
     <slot />
+    <script>
+      import { installConsole } from '../lib/console';
+      installConsole();
+    </script>
   </body>
 </html>

@@ -133,6 +133,8 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   let aurorae: { name: string; age: number; days: number }[] = [];
   let aim: { x0: number; y0: number; x: number; y: number; id: number } | null = null;
   let sunFlash = 0;
+  // Time warp from the console: `offsetDays` runs ahead (or back) while warping, then eases back to today
+  let warpRate = 0, warpLeft = 0, offsetDays = 0;
 
   function resize() {
     dpr = Math.min(devicePixelRatio || 1, 2);
@@ -184,10 +186,12 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   }
 
   const busy = () => comets.length > 0 || cmes.length > 0 || aurorae.length > 0 || aim !== null
-    || sunFlash > 0.01;
+    || sunFlash > 0.01 || warpLeft > 0 || offsetDays !== 0;
 
   function update(dt: number) {
     sunFlash *= Math.exp(-dt / 0.35);
+    if (warpLeft > 0) { offsetDays += warpRate * dt; warpLeft -= dt; }
+    else if (offsetDays) { offsetDays *= Math.exp(-dt / 0.6); if (Math.abs(offsetDays) < 0.05) offsetDays = 0; }
     for (const f of comets) {
       if (f.end) { f.endAge += dt; continue; }
       const out: Outcome = advance(f.c, dt * f.rate);
@@ -199,7 +203,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     }
     comets = comets.filter(f => !f.end || f.endAge < 1.2);
 
-    const jd = julianDate(Date.now());
+    const jd = julianDate(Date.now()) + offsetDays;
     for (const e of cmes) {
       e.age += dt;
       const front = 0.25 + e.age * CME_AU_PER_SECOND;
@@ -220,7 +224,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   }
 
   function erupt() {
-    const earth = positionAt(PLANETS[2], julianDate(Date.now()));
+    const earth = positionAt(PLANETS[2], julianDate(Date.now()) + offsetDays);
     // Real eruptions go every which way; this one favours Earth, so the aurora shows up often
     const dir = Math.atan2(earth.y, earth.x) + (Math.random() - 0.5) * 1.6;
     cmes.push({ age: 0, dir, kms: 600 + Math.random() * 1400, seed: Math.random() * 10, hit: new Set() });
@@ -233,11 +237,11 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     ctx.clearRect(0, 0, w, h);
     const intro = reduced ? 1 : Math.min((t - start) / INTRO_MS, 1);
     const ease = 1 - Math.pow(1 - intro, 3);
-    const shownMs = Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS;
+    const shownMs = Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS + offsetDays * DAY_MS;
     const jd = julianDate(shownMs);
     // Sunlight front, sent out once the system has settled on today
     const since = (t - start - INTRO_MS) % PULSE_EVERY;
-    const lightAU = !reduced && t - start > INTRO_MS ? (since / 1000) * LIGHT_SPEEDUP / LIGHT_SECONDS_PER_AU : -1;
+    const lightAU = !reduced && t - start > INTRO_MS && !offsetDays ? (since / 1000) * LIGHT_SPEEDUP / LIGHT_SECONDS_PER_AU : -1;
 
     // Orbits
     ctx.lineWidth = 1;
@@ -359,11 +363,12 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
       ctx.font = '500 11px "JetBrains Mono", monospace';
       ctx.fillStyle = '#8f8f98';
       const day = dateFmt.format(shownMs).toUpperCase();
-      ctx.fillText(intro < 1 ? `THE SOLAR SYSTEM · ${day}` : `THE SOLAR SYSTEM TODAY · ${day}`, cx, y);
+      ctx.fillText(offsetDays ? `THE SOLAR SYSTEM · ${day} · TIME WARP` : intro < 1 ? `THE SOLAR SYSTEM · ${day}` : `THE SOLAR SYSTEM TODAY · ${day}`, cx, y);
       ctx.font = '11px "JetBrains Mono", monospace';
       ctx.fillStyle = '#7c7c85';
       const newest = comets.filter(f => !f.end).at(-1);
-      ctx.fillText(newest ? `comet in time-lapse · 1 s ≈ ${Math.round(newest.rate)} days` : 'real positions · distances on a log scale', cx, y + 18);
+      ctx.fillText(warpLeft > 0 ? `${Math.abs(warpRate)} days per second${warpRate < 0 ? ', backwards' : ''}` : offsetDays ? 'back to today'
+        : newest ? `comet in time-lapse · 1 s ≈ ${Math.round(newest.rate)} days` : 'real positions · distances on a log scale', cx, y + 18);
       if (fine.matches) {
         ctx.fillText('drag to throw a comet · click the Sun', cx, y + 36);
       }
@@ -434,7 +439,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     hovered = name;
     const b = shown.find(s => s.name === name);
     if (!name || !b) { tip.style.opacity = '0'; return; }
-    const jd = julianDate(Date.now());
+    const jd = julianDate(Date.now()) + offsetDays;
     const p = PLANETS.find(q => q.name === name)!;
     const pos = positionAt(p, jd), earth = positionAt(PLANETS[2], jd);
     const fromSun = Math.hypot(pos.x, pos.y, pos.z);
@@ -519,6 +524,23 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     looping = true; last = performance.now();
     requestAnimationFrame(loop);
   }
+
+  // Console commands (lib/console.ts) reach the solar system through events
+  document.documentElement.dataset.solarSystem = 'on';
+  const command = (name: string, run: (detail: Record<string, any>) => void) =>
+    addEventListener(`comae:${name}`, e => { run((e as CustomEvent).detail ?? {}); wake(); });
+  command('comet', d => {
+    const r = d.distance ?? 1.5 + Math.random() * 6, lon = Math.random() * 2 * Math.PI;
+    const v = (d.speed ?? 0.35 + Math.random() * 0.4) * circularSpeed(r), tilt = (Math.random() - 0.5) * 0.3;
+    // Mostly sideways, prograde, with a slight random lean in or out
+    const c: Comet = { x: r * Math.cos(lon), y: r * Math.sin(lon),
+      vx: v * (-Math.sin(lon) + tilt * Math.cos(lon)), vy: v * (Math.cos(lon) + tilt * Math.sin(lon)) };
+    comets.push({ c: { ...c }, rate: clockFor(c), trail: [], age: 0, end: null, endAge: 0 });
+    if (comets.length > 4) comets.shift();
+    d.comet = c;
+  });
+  command('flare', () => erupt());
+  command('warp', d => { warpRate = d.rate; warpLeft = d.rate ? 15 : 0; });
 
   resize();
   addEventListener('resize', () => { resize(); if (reduced) draw(performance.now()); });
