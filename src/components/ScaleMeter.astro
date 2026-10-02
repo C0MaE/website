@@ -21,8 +21,16 @@ const ticks = PLANETS.map(p => ({ name: p.name, top: (p.el[0] / NEPTUNE) * 100, 
   <p data-label class="absolute right-5 -translate-y-1/2 top-0 whitespace-nowrap text-right font-mono text-[11px] leading-snug px-2 py-1 rounded-md bg-zinc-950/85 opacity-0 transition-opacity duration-300">
     <span data-where class="block text-zinc-300"></span>
     <span data-detail class="block text-muted"></span>
+    <span data-shift class="block"></span>
   </p>
 </div>
+
+<!-- Colour matrix for the Doppler-shifted headings; its values are set while scrolling -->
+<svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false">
+  <filter id="doppler-shift" color-interpolation-filters="sRGB">
+    <feColorMatrix data-matrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" />
+  </filter>
+</svg>
 
 <!-- Phones and tablets: a small pill while scrolling -->
 <p id="scale-pill" class="lg:hidden fixed bottom-4 inset-x-0 mx-auto w-max max-w-[calc(100%-2rem)] z-40 pointer-events-none px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/90 backdrop-blur-sm font-mono text-[11px] text-zinc-300 opacity-0 transition-opacity duration-300" aria-hidden="true"></p>
@@ -38,6 +46,7 @@ const ticks = PLANETS.map(p => ({ name: p.name, top: (p.el[0] / NEPTUNE) * 100, 
   const where = meter.querySelector<HTMLElement>('[data-where]')!;
   const detail = meter.querySelector<HTMLElement>('[data-detail]')!;
   const pill = document.getElementById('scale-pill')!;
+  const shift = meter.querySelector<HTMLElement>('[data-shift]')!;
   const possessive = (name: string) => (name.endsWith('s') ? `${name}'` : `${name}'s`);
 
   function lightTime(s: number) {
@@ -79,7 +88,38 @@ const ticks = PLANETS.map(p => ({ name: p.name, top: (p.el[0] / NEPTUNE) * 100, 
     hideTimer = window.setTimeout(() => { label.style.opacity = pill.style.opacity = '0'; }, 1600);
   }
 
-  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+  // Doppler: scrolling down means flying away from the top, so the headings redshift; up, they blueshift.
+  // 4000 px/s plays the speed of light; z from the relativistic formula z = √((1+β)/(1−β)) − 1.
+  const C_SCROLL = 4000;
+  const root = document.documentElement;
+  const matrix = document.querySelector('#doppler-shift [data-matrix]')!;
+  const shifting = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (shifting) document.querySelectorAll('main h1, main h2').forEach(el => el.classList.add('doppler'));
+  let v = 0, lastY = scrollY, lastT = 0, lastScroll = 0, dopplerOn = false;
+  function doppler(t: number) {
+    const dt = Math.max((t - lastT) / 1000, 1 / 240);
+    const instant = lastT ? (scrollY - lastY) / dt : 0;
+    lastY = scrollY; lastT = t;
+    v += (instant - v) * (1 - Math.exp(-dt / 0.12));
+    const beta = Math.max(-0.95, Math.min(0.95, v / C_SCROLL));
+    const z = Math.sqrt((1 + beta) / (1 - beta)) - 1;
+    // Shift the colour balance: receding light loses its blue end, approaching light its red end
+    const k = Math.min(Math.abs(beta) * 1.3, 0.8), f = (x: number) => x.toFixed(3);
+    matrix.setAttribute('values', beta > 0
+      ? `1 ${f(0.15 * k)} ${f(0.1 * k)} 0 ${f(0.04 * k)}  0 ${f(1 - 0.55 * k)} 0 0 0  0 0 ${f(1 - 0.8 * k)} 0 0  0 0 0 1 0`
+      : `${f(1 - 0.7 * k)} 0 0 0 0  0 ${f(1 - 0.3 * k)} ${f(0.1 * k)} 0 0  ${f(0.15 * k)} ${f(0.1 * k)} 1 0 ${f(0.04 * k)}  0 0 0 1 0`);
+    root.style.setProperty('--doppler', k < 0.03 ? 'none' : 'url(#doppler-shift)');
+    shift.textContent = Math.abs(beta) > 0.03 ? `${beta > 0 ? 'redshift' : 'blueshift'} z = ${z.toFixed(2)}` : '';
+    shift.style.color = beta > 0 ? '#fca5a5' : '#93c5fd';
+    if (Math.abs(v) > 5 || t - lastScroll < 150) requestAnimationFrame(doppler);
+    else { dopplerOn = false; v = 0; lastT = 0; root.style.setProperty('--doppler', 'none'); shift.textContent = ''; }
+  }
+
+  addEventListener('scroll', () => {
+    if (!queued) { queued = true; requestAnimationFrame(update); }
+    lastScroll = performance.now();
+    if (shifting && !dopplerOn) { dopplerOn = true; lastY = scrollY; requestAnimationFrame(doppler); }
+  }, { passive: true });
   // Place the probe without flashing the label on load
   requestAnimationFrame(() => { update(); label.style.opacity = pill.style.opacity = '0'; });
 </script>

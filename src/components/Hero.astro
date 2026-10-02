@@ -74,6 +74,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 
 <script>
   import { PLANETS, positionAt, orbitAt, julianDate, LIGHT_SECONDS_PER_AU } from '../lib/planets';
+  import { advance, preview, circularSpeed, K2, type Comet, type Outcome } from '../lib/comet';
   import { mountLensedSky } from '../lib/lensing';
 
   const section = document.getElementById('hero')!;
@@ -83,6 +84,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   const tip = document.getElementById('planet-tip')!;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const wide = matchMedia('(min-width: 1024px)'); // system beside the text rather than a faint backdrop
+  const fine = matchMedia('(pointer: fine)');      // comets and eruptions need a mouse or pen
 
   const LOOK: Record<string, { color: string; size: number }> = {
     Mercury: { color: '#a8a29e', size: 2 },
@@ -94,22 +96,43 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     Uranus: { color: '#67e8f9', size: 3.3 },
     Neptune: { color: '#818cf8', size: 3.2 },
   };
+  // Planets with a global magnetic field get aurorae when a solar eruption hits them
+  const AURORA: Record<string, { color: string; text: string }> = {
+    Earth: { color: '#4ade80', text: 'aurora · maybe even over Kiel' },
+    Jupiter: { color: '#e879f9', text: 'aurora' },
+    Saturn: { color: '#e879f9', text: 'aurora' },
+    Uranus: { color: '#a5f3fc', text: 'aurora' },
+    Neptune: { color: '#a5b4fc', text: 'aurora' },
+  };
   const TILT = 0.42;               // vertical squash: the ecliptic seen at an inclination
-  // Distances on a log scale so Mercury and Neptune fit into one picture; angles are real
+  // Distances on a log scale so Mercury and Neptune fit into one picture; angles are real.
+  // Inside 0.3 AU (only comets get there) the scale turns linear down to the Sun.
   const R_IN = 0.17, R_OUT = 0.95, AU_IN = 0.3, AU_OUT = 30.4;
   const K = (R_OUT - R_IN) / Math.log(AU_OUT / AU_IN);
-  const radial = (au: number) => R_IN + K * Math.log(au / AU_IN);
+  const radial = (au: number) => (au < AU_IN ? (R_IN * au) / AU_IN : R_IN + K * Math.log(au / AU_IN));
+  const unradial = (rho: number) => (rho < R_IN ? (AU_IN * rho) / R_IN : AU_IN * Math.exp((rho - R_IN) / K));
   const INTRO_DAYS = 90, INTRO_MS = 3200;      // fast-forward the last three months on load, landing on today
   const LIGHT_SPEEDUP = 1700, PULSE_EVERY = 9000; // a sunlight front every 9 s, Neptune reached after ~9 s
-  const DAY_MS = 86400000;
+  const CME_AU_PER_SECOND = 0.9, CME_HALF_WIDTH = 0.5; // eruption front speed on screen, cone half-angle (rad)
+  const DAY_MS = 86400000, KM_PER_AU = 149_597_871;
   const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const period = (a: number) => 365.25 * Math.pow(a, 1.5); // days, Kepler's third law
   const orbits = PLANETS.map(p => orbitAt(p, julianDate(Date.now())));
   let w = 0, h = 0, dpr = 1, cx = 0, cy = 0, R = 0, scale = 1, visible = true;
-  let start = performance.now();
+  let start = performance.now(), last = start;
   let hovered: string | null = null;
   let shown: { name: string; x: number; y: number }[] = [];
+
+  // Toys: thrown comets, solar eruptions, the aurorae they cause, and the time-lapse comets need
+  // `end` is set once a comet is done: swallowed by the Sun, or fading out (escaped or just old)
+  // Each comet runs on its own time-lapse clock (`rate`, days per second) so that one lap takes ~10 s
+  type Flying = { c: Comet; rate: number; trail: { x: number; y: number }[]; age: number; end: 'sun' | 'fade' | null; endAge: number };
+  let comets: Flying[] = [];
+  let cmes: { age: number; dir: number; kms: number; seed: number; hit: Set<string> }[] = [];
+  let aurorae: { name: string; age: number; days: number }[] = [];
+  let aim: { x0: number; y0: number; x: number; y: number; id: number } | null = null;
+  let sunFlash = 0;
 
   function resize() {
     dpr = Math.min(devicePixelRatio || 1, 2);
@@ -123,9 +146,15 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
 
   // Ecliptic position [AU] to canvas pixels; "back" is the far side of the tilted plane
   function project(p: { x: number; y: number }) {
-    const r = Math.hypot(p.x, p.y);
+    const r = Math.hypot(p.x, p.y) || 1e-9;
     const k = (radial(r) / r) * R;
     return { x: cx + p.x * k, y: cy - p.y * k * TILT, back: p.y > 0, r };
+  }
+  // ...and back: canvas pixels to the ecliptic
+  function unproject(x: number, y: number) {
+    const dx = x - cx, dy = (cy - y) / TILT, rho = Math.hypot(dx, dy) / R || 1e-6;
+    const k = unradial(rho) / (rho * R);
+    return { x: dx * k, y: dy * k };
   }
 
   function lightTime(seconds: number) {
@@ -134,11 +163,78 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`;
   }
 
+  // A comet thrown from (x0, y0) by dragging to (x, y): direction as dragged on screen,
+  // speed in units of the local circular speed (a drag of ~70 px is a circular orbit)
+  function launchFrom(x0: number, y0: number, x: number, y: number): Comet {
+    const p = unproject(x0, y0);
+    const len = Math.hypot(x - x0, y - y0) || 1;
+    const q = unproject(x0 + ((x - x0) / len) * 2, y0 + ((y - y0) / len) * 2);
+    const dir = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+    const speed = Math.min(len / (70 * scale), 2.4) * circularSpeed(Math.hypot(p.x, p.y));
+    return { x: p.x, y: p.y, vx: ((q.x - p.x) / dir) * speed, vy: ((q.y - p.y) / dir) * speed };
+  }
+
+  // Time-lapse for a comet: a bound orbit takes about ten seconds per lap, keeping Kepler's
+  // second law within it (slow far out, fast past the Sun); open orbits go by the local pace
+  function clockFor(c: Comet) {
+    const r = Math.hypot(c.x, c.y), energy = (c.vx ** 2 + c.vy ** 2) / 2 - K2 / r;
+    const days = energy < 0 ? 2 * Math.PI * Math.pow(-K2 / (2 * energy), 1.5) / Math.sqrt(K2) / 10
+      : 2 * Math.PI * Math.pow(r, 1.5) / Math.sqrt(K2) / 8;
+    return Math.min(Math.max(days, 10), 2000);
+  }
+
+  const busy = () => comets.length > 0 || cmes.length > 0 || aurorae.length > 0 || aim !== null
+    || sunFlash > 0.01;
+
+  function update(dt: number) {
+    sunFlash *= Math.exp(-dt / 0.35);
+    for (const f of comets) {
+      if (f.end) { f.endAge += dt; continue; }
+      const out: Outcome = advance(f.c, dt * f.rate);
+      f.age += dt;
+      f.trail.push({ x: f.c.x, y: f.c.y });
+      if (f.trail.length > 90) f.trail.shift();
+      if (out === 'sun') { f.end = 'sun'; sunFlash = 1; }   // swallowed: the Sun flares up
+      else if (out === 'escaped' || f.age > 60) f.end = 'fade';
+    }
+    comets = comets.filter(f => !f.end || f.endAge < 1.2);
+
+    const jd = julianDate(Date.now());
+    for (const e of cmes) {
+      e.age += dt;
+      const front = 0.25 + e.age * CME_AU_PER_SECOND;
+      for (const p of PLANETS) {
+        if (!AURORA[p.name] || e.hit.has(p.name)) continue;
+        const q = positionAt(p, jd), r = Math.hypot(q.x, q.y);
+        const off = Math.abs(((Math.atan2(q.y, q.x) - e.dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+        if (front >= r && off < CME_HALF_WIDTH) {
+          e.hit.add(p.name);
+          const days = (r * KM_PER_AU) / e.kms / 86400, glowing = aurorae.find(a => a.name === p.name);
+          if (glowing) Object.assign(glowing, { age: Math.min(glowing.age, 0.3), days });   // a second hit keeps it going
+          else aurorae.push({ name: p.name, age: 0, days });
+        }
+      }
+    }
+    cmes = cmes.filter(e => 0.25 + e.age * CME_AU_PER_SECOND < AU_OUT * 1.1);
+    aurorae = aurorae.filter(a => (a.age += dt) < 3.2);
+  }
+
+  function erupt() {
+    const earth = positionAt(PLANETS[2], julianDate(Date.now()));
+    // Real eruptions go every which way; this one favours Earth, so the aurora shows up often
+    const dir = Math.atan2(earth.y, earth.x) + (Math.random() - 0.5) * 1.6;
+    cmes.push({ age: 0, dir, kms: 600 + Math.random() * 1400, seed: Math.random() * 10, hit: new Set() });
+    if (cmes.length > 3) cmes.shift();
+    sunFlash = 1;
+    wake();
+  }
+
   function draw(t: number) {
     ctx.clearRect(0, 0, w, h);
     const intro = reduced ? 1 : Math.min((t - start) / INTRO_MS, 1);
     const ease = 1 - Math.pow(1 - intro, 3);
-    const jd = julianDate(Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS);
+    const shownMs = Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS;
+    const jd = julianDate(shownMs);
     // Sunlight front, sent out once the system has settled on today
     const since = (t - start - INTRO_MS) % PULSE_EVERY;
     const lightAU = !reduced && t - start > INTRO_MS ? (since / 1000) * LIGHT_SPEEDUP / LIGHT_SECONDS_PER_AU : -1;
@@ -156,6 +252,29 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
       const rr = radial(lightAU) * R;
       ctx.strokeStyle = `rgba(253,230,138,${0.16 * (1 - lightAU / (AU_OUT * 1.05))})`;
       ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * TILT, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Solar eruptions: a diffuse cloud expanding inside a cone, brightest at its leading edge
+    for (const e of cmes) {
+      const front = 0.25 + e.age * CME_AU_PER_SECOND, fade = Math.max(0, 1 - front / (AU_OUT * 1.1)) ** 1.5;
+      const outer = radial(front) * R, inner = radial(front * 0.55) * R;
+      const N = 28;
+      const at = (q: number, rr: number) => {
+        const rag = rr * (1 + 0.04 * Math.sin(7 * q + e.seed) + 0.025 * Math.sin(13 * q + 2 * e.seed));
+        return [cx + rag * Math.cos(q), cy - rag * TILT * Math.sin(q)];
+      };
+      for (let k = 0; k < N; k++) {
+        const p0 = e.dir + (k / N - 0.5) * 2 * CME_HALF_WIDTH, p1 = e.dir + ((k + 1) / N - 0.5) * 2 * CME_HALF_WIDTH;
+        const edge = Math.sin(Math.PI * (k + 0.5) / N);           // fades towards the sides of the cone
+        const [ax, ay] = at(p0, outer), [bx, by] = at(p1, outer), [c0x, c0y] = at(p1, inner), [d0x, d0y] = at(p0, inner);
+        const mid = at((p0 + p1) / 2, outer), base = at((p0 + p1) / 2, inner);
+        const g = ctx.createLinearGradient(base[0], base[1], mid[0], mid[1]);
+        g.addColorStop(0, 'rgba(251,146,60,0)'); g.addColorStop(1, `rgba(251,146,60,${0.28 * fade * edge})`);
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(c0x, c0y); ctx.lineTo(d0x, d0y); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = `rgba(254,215,170,${0.55 * fade * edge})`; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      }
     }
 
     const bodies = PLANETS.map(p => {
@@ -196,18 +315,42 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
         ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e4e4e7';
         ctx.beginPath(); ctx.arc(now.x, now.y, size + 5, 0, Math.PI * 2); ctx.stroke();
       }
+      // Aurora: a flickering glow around the poles, and a note for a moment
+      for (const a of aurorae.filter(x => x.name === p.name)) {
+        const look = AURORA[p.name], fade = Math.min(a.age / 0.3, 1) * Math.min((3.2 - a.age) / 0.8, 1);
+        const flicker = 0.65 + 0.35 * Math.sin(t * 0.021 + a.age * 7) * Math.sin(t * 0.013);
+        const g = ctx.createRadialGradient(now.x, now.y, size, now.x, now.y, size * 3.4);
+        g.addColorStop(0, look.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = 0.55 * fade * flicker; ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(now.x, now.y, size * 3.4, 0, Math.PI * 2); ctx.fill();
+        const note = p.name === 'Earth' ? `the eruption took ${a.days.toFixed(1)} days to get here` : '';
+        ctx.font = '11px "JetBrains Mono", monospace';
+        // Notes sit centred above the planet (below it near the top), kept inside the canvas
+        const half = Math.max(ctx.measureText(look.text).width, ctx.measureText(note).width) / 2;
+        const tx = Math.min(Math.max(now.x, half + 4), w - half - 4);
+        const below = now.y - size - 34 < 0;
+        const ty = below ? now.y + size + 16 : now.y - size - (note ? 22 : 9);
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = fade; ctx.fillStyle = look.color;
+        ctx.fillText(look.text, tx, ty);
+        if (note) { ctx.globalAlpha = fade * 0.75; ctx.fillStyle = '#a1a1aa'; ctx.fillText(note, tx, ty + 13); }
+      }
       ctx.globalAlpha = 1;
     };
 
     // Far side first, then the Sun, then the near side, so planets pass behind and in front of it
     bodies.filter(b => b.now.back).forEach(drawBody);
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.13);
+    const sunR = R * 0.13 * (1 + 0.6 * sunFlash);
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunR);
     glow.addColorStop(0, 'rgba(253,230,138,0.95)');
-    glow.addColorStop(0.25, 'rgba(251,191,36,0.35)');
+    glow.addColorStop(0.25, `rgba(251,191,36,${0.35 + 0.4 * sunFlash})`);
     glow.addColorStop(1, 'rgba(124,58,237,0)');
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, cy, R * 0.13, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, sunR, 0, Math.PI * 2); ctx.fill();
     bodies.filter(b => !b.now.back).forEach(drawBody);
+
+    for (const f of comets) drawComet(f);
+    if (aim) drawAim();
 
     // Caption with the date being shown; counts up to today during the intro
     if (wide.matches) {
@@ -215,12 +358,76 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
       ctx.textAlign = 'center';
       ctx.font = '500 11px "JetBrains Mono", monospace';
       ctx.fillStyle = '#8f8f98';
-      const day = dateFmt.format(Date.now() - (1 - ease) * INTRO_DAYS * DAY_MS).toUpperCase();
+      const day = dateFmt.format(shownMs).toUpperCase();
       ctx.fillText(intro < 1 ? `THE SOLAR SYSTEM · ${day}` : `THE SOLAR SYSTEM TODAY · ${day}`, cx, y);
       ctx.font = '11px "JetBrains Mono", monospace';
       ctx.fillStyle = '#7c7c85';
-      ctx.fillText('real positions · distances on a log scale', cx, y + 18);
+      const newest = comets.filter(f => !f.end).at(-1);
+      ctx.fillText(newest ? `comet in time-lapse · 1 s ≈ ${Math.round(newest.rate)} days` : 'real positions · distances on a log scale', cx, y + 18);
+      if (fine.matches) {
+        ctx.fillText('drag to throw a comet · click the Sun', cx, y + 36);
+      }
     }
+  }
+
+  function drawComet(f: Flying) {
+    const fade = f.end ? Math.max(0, 1 - f.endAge / 1.2) : Math.min(f.age / 0.2, 1);
+    const head = project(f.c), r = Math.hypot(f.c.x, f.c.y);
+    ctx.globalAlpha = 0.25 * fade; ctx.strokeStyle = '#bae6fd'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    f.trail.forEach((q, i) => { const s = project(q); i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
+    ctx.stroke();
+    if (f.end === 'sun') { ctx.globalAlpha = 1; return; }   // only the fading trail is left
+    // Comets wake up inside a few AU; the tails point away from the Sun and grow as it gets closer
+    const activity = Math.min(Math.max((6 - r) / 3, 0), 1);
+    const len = Math.min(26 * scale / Math.pow(Math.max(r, 0.12), 0.9), 160) * activity;
+    const ax = head.x - cx, ay = head.y - cy, an = Math.hypot(ax, ay) || 1;
+    const ux = ax / an, uy = ay / an;
+    if (len > 2) {
+      const prev = f.trail.length > 3 ? project(f.trail[f.trail.length - 4]) : head;
+      const vx = head.x - prev.x, vy = head.y - prev.y, vn = Math.hypot(vx, vy) || 1;
+      // Dust tail: curves away, lagging behind the motion
+      const ex = head.x + ux * len * 0.85 - (vx / vn) * len * 0.45, ey = head.y + uy * len * 0.85 - (vy / vn) * len * 0.45;
+      const dust = ctx.createLinearGradient(head.x, head.y, ex, ey);
+      dust.addColorStop(0, 'rgba(254,243,199,0.55)'); dust.addColorStop(1, 'rgba(254,243,199,0)');
+      ctx.globalAlpha = fade; ctx.strokeStyle = dust; ctx.lineWidth = 3 * scale; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(head.x, head.y);
+      ctx.quadraticCurveTo(head.x + ux * len * 0.5, head.y + uy * len * 0.5, ex, ey); ctx.stroke();
+      // Ion tail: straight out from the Sun
+      const ion = ctx.createLinearGradient(head.x, head.y, head.x + ux * len * 1.3, head.y + uy * len * 1.3);
+      ion.addColorStop(0, 'rgba(147,197,253,0.7)'); ion.addColorStop(1, 'rgba(147,197,253,0)');
+      ctx.strokeStyle = ion; ctx.lineWidth = 1.4 * scale;
+      ctx.beginPath(); ctx.moveTo(head.x, head.y); ctx.lineTo(head.x + ux * len * 1.3, head.y + uy * len * 1.3); ctx.stroke();
+    }
+    const coma = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 4 + 5 * activity);
+    coma.addColorStop(0, 'rgba(224,242,254,0.8)'); coma.addColorStop(1, 'rgba(224,242,254,0)');
+    ctx.globalAlpha = fade; ctx.fillStyle = coma;
+    ctx.beginPath(); ctx.arc(head.x, head.y, 4 + 5 * activity, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(head.x, head.y, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // While dragging: where the comet would go, coloured by how it ends
+  function drawAim() {
+    if (!aim) return;
+    const c = launchFrom(aim.x0, aim.y0, aim.x, aim.y);
+    const { points, outcome } = preview(c);
+    ctx.strokeStyle = outcome === 'sun' ? '#f87171' : outcome === 'escaped' ? '#fbbf24' : '#7dd3fc';
+    ctx.lineWidth = 1.2; ctx.setLineDash([4, 6]);
+    const per = Math.ceil(points.length / 10);
+    for (let k = 0; k < 10; k++) {
+      const part = points.slice(k * per, (k + 1) * per + 1);
+      if (part.length < 2) break;
+      ctx.globalAlpha = 0.75 * (1 - k / 10);
+      ctx.beginPath();
+      part.forEach((q, i) => { const s = project(q); i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = '#e4e4e7';
+    ctx.beginPath(); ctx.moveTo(aim.x0, aim.y0); ctx.lineTo(aim.x, aim.y); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#e0f2fe';
+    ctx.beginPath(); ctx.arc(aim.x0, aim.y0, 2.5, 0, Math.PI * 2); ctx.fill();
   }
 
   function showTip(name: string | null) {
@@ -252,23 +459,64 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
     tip.style.top = `${y - tip.offsetHeight - 10}px`;
   }
 
+  // Pointer position on the canvas, and whether it is over text the visitor may want to select or click
+  const local = (e: PointerEvent) => { const c = canvas.getBoundingClientRect(); return { x: e.clientX - c.left, y: e.clientY - c.top }; };
+  const overText = (e: PointerEvent) => !!(e.target as HTMLElement).closest('a, button, h1, p, li');
+  const onSun = (x: number, y: number) => Math.hypot(x - cx, y - cy) < Math.max(R * 0.09, 14);
+  const playable = (e: PointerEvent) => wide.matches && e.pointerType !== 'touch';
+
   // Hover (or tap) a planet; only where the system sits beside the text, not as the backdrop
   function pick(e: PointerEvent) {
-    if (!wide.matches) return;
-    const c = canvas.getBoundingClientRect();
-    const x = e.clientX - c.left, y = e.clientY - c.top;
+    if (!wide.matches || aim) return;
+    const { x, y } = local(e);
     const reach = e.pointerType === 'touch' ? 26 : 16;
     let best: string | null = null, bestD = reach;
     for (const s of shown) { const d = Math.hypot(s.x - x, s.y - y); if (d < bestD) { bestD = d; best = s.name; } }
     if (best !== hovered) showTip(best);
+    if (playable(e)) section.style.cursor = overText(e) ? '' : best || onSun(x, y) ? 'pointer' : 'crosshair';
     if (reduced) draw(performance.now());
   }
-  section.addEventListener('pointermove', pick);
-  section.addEventListener('pointerdown', pick);
-  section.addEventListener('pointerleave', () => { showTip(null); if (reduced) draw(performance.now()); });
 
+  section.addEventListener('pointermove', e => {
+    if (aim && e.pointerId === aim.id) { const p = local(e); aim.x = p.x; aim.y = p.y; wake(); return; }
+    pick(e);
+  });
+  section.addEventListener('pointerdown', e => {
+    if (!playable(e) || e.button !== 0 || overText(e)) return pick(e);
+    const { x, y } = local(e);
+    if (x < 0 || y < 0 || x > w || y > h) return pick(e);
+    e.preventDefault();                       // no text selection while aiming
+    section.setPointerCapture(e.pointerId);
+    showTip(null);
+    aim = { x0: x, y0: y, x, y, id: e.pointerId };
+    wake();
+  });
+  section.addEventListener('pointerup', e => {
+    if (!aim || e.pointerId !== aim.id) return;
+    const moved = Math.hypot(aim.x - aim.x0, aim.y - aim.y0);
+    if (moved > 6) {
+      const c = launchFrom(aim.x0, aim.y0, aim.x, aim.y);
+      comets.push({ c, rate: clockFor(c), trail: [], age: 0, end: null, endAge: 0 });
+      if (comets.length > 4) comets.shift();
+    } else if (onSun(aim.x0, aim.y0)) erupt();
+    aim = null;
+    wake();
+  });
+  section.addEventListener('pointercancel', () => { aim = null; });
+  section.addEventListener('pointerleave', () => { if (!aim) { showTip(null); section.style.cursor = ''; if (reduced) draw(performance.now()); } });
+
+  // The loop runs all the time normally; with reduced motion only while a toy is in play
+  let looping = false;
   function loop(t: number) {
+    const dt = Math.min((t - last) / 1000, 0.05); last = t;
+    update(dt);
     if (visible) { draw(t); if (hovered) placeTip(); }
+    if (!reduced || busy()) requestAnimationFrame(loop);
+    else { looping = false; draw(t); }
+  }
+  function wake() {
+    if (looping) return;
+    looping = true; last = performance.now();
     requestAnimationFrame(loop);
   }
 
@@ -279,5 +527,5 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
   if (reduced) {
     draw(start);
     document.fonts.ready.then(() => draw(performance.now())); // redraw the caption in the right font
-  } else requestAnimationFrame(loop);
+  } else wake();
 </script>

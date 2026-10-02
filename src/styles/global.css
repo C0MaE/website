@@ -53,6 +53,8 @@
   .animate-delay-400 { animation-delay: 400ms; }
   .animate-delay-500 { animation-delay: 500ms; }
   .opacity-0-init { opacity: 0; }
+  /* Headings red- or blueshifted while scrolling fast (set from ScaleMeter) */
+  .doppler { filter: var(--doppler, none); }
 }
 
 /* Respect reduced-motion: show everything immediately instead of fading it in */
@@ -60,4 +62,5 @@
   html { scroll-behavior: auto; }
   .opacity-0-init { opacity: 1; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .doppler { filter: none; }
 }
