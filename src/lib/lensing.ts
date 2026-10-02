@@ -68,18 +68,26 @@ function paintSky(w: number, h: number, dpr: number) {
   return c;
 }
 
-/** True when WebGL runs on a real GPU. Software renderers are slow, and some break page compositing */
-function hardwareGL() {
-  const gl = document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true });
-  if (!gl) return false;
-  const info = gl.getExtension('WEBGL_debug_renderer_info');
-  const renderer = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
-  gl.getExtension('WEBGL_lose_context')?.loseContext();
-  return !/swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer);
+/** Software renderers are slow, and some break page compositing; they get the plain sky */
+function softwareRenderer(gl: WebGLRenderingContext) {
+  // Firefox reports the real renderer directly; Chrome and Safari only through the debug extension
+  let renderer = String(gl.getParameter(gl.RENDERER));
+  if (/^webkit webgl$/i.test(renderer)) {
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    if (info) renderer = String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL));
+  }
+  return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer);
 }
 
-export function mountLensedSky(canvas: HTMLCanvasElement, area: HTMLElement) {
-  const gl = hardwareGL() ? canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }) : null;
+export function mountLensedSky(sky: HTMLCanvasElement, area: HTMLElement) {
+  let canvas = sky;
+  let gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false, failIfMajorPerformanceCaveat: true });
+  if (gl && softwareRenderer(gl)) {
+    // A canvas that has a WebGL context can't switch to 2D, so swap in a fresh one
+    const fresh = canvas.cloneNode() as HTMLCanvasElement;
+    canvas.replaceWith(fresh);
+    canvas = fresh; gl = null;
+  }
   let w = 0, h = 0, dpr = 1;
   // Lens state: pointer target and the eased values actually drawn
   let tx = 0, ty = 0, x = 0, y = 0, reTarget = 0, re = 0, raf = 0, last = 0, ready = false;
