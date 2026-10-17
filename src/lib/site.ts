@@ -5,7 +5,7 @@ export const SITE_NAME = 'CoMaE';
 
 export interface Hero { name?: string; typewriterWords: string[]; bio: string; now?: { label: string; href?: string }[] }
 export interface Project { title: string; description: string; tags: string[]; github: string | null; live: string | null; featured: boolean; image: string | null }
-export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null }
+export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null; note?: string | null }
 export interface SkillCategory { name: string; icon: string; skills: string[] }
 export interface TimelineEvent { year: string; title: string; place: string; description: string; type: string; ongoing?: boolean; until?: string }
 export interface Contact { email: string; socials: { label: string; href: string }[] }
@@ -127,7 +127,7 @@ export function llmsTxt(s: Site) {
     '',
     '## Research & university work',
     '',
-    ...s.research.map(r => `- ${link(r.title, r.github)}${r.affiliation ? ` (${r.affiliation})` : ''}: ${sentence(r.description)} Tech: ${r.tags.join(', ')}.`),
+    ...s.research.map(r => `- ${link(r.title, r.github)}${r.affiliation ? ` (${r.affiliation})` : ''}: ${sentence(r.description)} Tech: ${r.tags.join(', ')}.${r.note ? ` ${sentence(r.note)}` : ''}`),
     '',
     '## Projects',
     '',

@@ -27,13 +27,13 @@
     "image": "/print-center.webp"
   },
   {
-    "title": "Open DnD",
-    "description": "Offline-first D&D 5e character manager for the desktop: builder, character sheet, spellbook and inventory.",
+    "title": "Fablesheet",
+    "description": "Offline-first character manager for pen & paper RPGs: full SRD 5e rules and sheet templates for any other game, on the desktop and as a web app.",
     "tags": ["Rust", "Tauri", "React", "TypeScript", "SQLite"],
-    "github": "https://github.com/C0MaE/open-dnd-app",
-    "live": null,
+    "github": "https://github.com/fablesheet/fablesheet",
+    "live": "https://fablesheet.github.io/fablesheet/",
     "featured": true,
-    "image": "/open-dnd.webp"
+    "image": "/fablesheet.webp"
   },
   {
     "title": "McLookup",

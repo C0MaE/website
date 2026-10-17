@@ -12,6 +12,7 @@ interface ResearchProject {
   github: string | null;
   image: string | null;
   video: string | null;
+  note?: string | null;
 }
 
 const projects = await fetchData<ResearchProject[]>('research.json');
@@ -38,6 +39,7 @@ const projects = await fetchData<ResearchProject[]>('research.json');
           labelUrl={p.affiliationUrl}
           tone="emerald"
           fit={p.image?.endsWith('.svg') ? 'contain' : 'cover'}
+          note={p.note}
         />
       ))}
     </div>

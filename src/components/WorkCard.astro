@@ -12,11 +12,13 @@ interface Props {
   tone?: 'violet' | 'emerald';
   /** How the preview fills its frame: screenshots crop, diagrams and renders fit */
   fit?: 'cover' | 'contain';
+  /** Short remark under the description, e.g. why there is no code link */
+  note?: string | null;
 }
 
 const {
   title, description, tags, github, live, image, video,
-  label, labelUrl, tone = 'violet', fit = 'cover',
+  label, labelUrl, tone = 'violet', fit = 'cover', note,
 } = Astro.props;
 
 const labelColor = tone === 'emerald' ? 'text-emerald-400' : 'text-accent-light';
@@ -80,7 +82,8 @@ const primaryHref = live ?? github ?? null;
         )}
       </div>
     </div>
-    <p class="text-zinc-400 text-sm leading-relaxed mb-5">{description}</p>
+    <p class={`text-zinc-400 text-sm leading-relaxed ${note ? 'mb-3' : 'mb-5'}`}>{description}</p>
+    {note && <p class="font-mono text-[11px] text-muted mb-5">{note}</p>}
 
     <ul class="mt-auto flex flex-wrap gap-1.5">
       {tags.map(tag => (
