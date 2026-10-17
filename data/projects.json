@@ -30,7 +30,7 @@
     "title": "Fablesheet",
     "description": "Offline-first character manager for pen & paper RPGs: full SRD 5e rules and sheet templates for any other game, on the desktop and as a web app.",
     "tags": ["Rust", "Tauri", "React", "TypeScript", "SQLite"],
-    "github": "https://github.com/fablesheet/fablesheet",
+    "github": "https://github.com/fablesheet",
     "live": "https://fablesheet.github.io/fablesheet/",
     "featured": true,
     "image": "/fablesheet.webp"
