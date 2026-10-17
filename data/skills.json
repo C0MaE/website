@@ -1,8 +1,8 @@
 [
   {
-    "name": "Frontend",
-    "icon": "🖥️",
-    "skills": ["TypeScript", "React", "Next.js", "SvelteKit", "React Native", "Astro", "Tailwind CSS", "Tauri"]
+    "name": "Physics & Math",
+    "icon": "⚛️",
+    "skills": ["Numerical Methods", "Linear Algebra", "Classical Mechanics", "Python (NumPy/SciPy)", "LaTeX", "Data Analysis"]
   },
   {
     "name": "Backend",
@@ -10,9 +10,9 @@
     "skills": ["Rust", "Actix-web", "SeaORM", "Tokio", "PostgreSQL", "SQLite", "REST APIs", "Kotlin"]
   },
   {
-    "name": "Physics & Math",
-    "icon": "⚛️",
-    "skills": ["Numerical Methods", "Linear Algebra", "Classical Mechanics", "Python (NumPy/SciPy)", "LaTeX", "Data Analysis"]
+    "name": "Frontend",
+    "icon": "🖥️",
+    "skills": ["TypeScript", "React", "Next.js", "SvelteKit", "React Native", "Astro", "Tailwind CSS", "Tauri"]
   },
   {
     "name": "DevOps & Tools",

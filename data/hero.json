@@ -2,11 +2,11 @@
   "name": "Jannis Koberg",
   "typewriterWords": [
     "Physics Student",
-    "Fullstack Developer",
-    "Rust Programmer",
-    "Simulation Builder"
+    "Research Software Developer",
+    "Simulation Builder",
+    "Fullstack Developer"
   ],
-  "bio": "Hey! I'm a physics student from northern Germany, coding since 2020. Rust is my language of choice, but I'm just as at home crafting polished frontends — drawn to problems where software meets the physical world.",
+  "bio": "Hey! I'm a physics student in Kiel who writes research software, from radiative transfer animations to research data pipelines. Coding since 2020 in Python, C and Rust, and just as at home crafting polished frontends.",
   "now": [
     {
       "label": "Studying physics at CAU Kiel"

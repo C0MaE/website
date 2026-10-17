@@ -25,7 +25,7 @@
     "year": "Jun 2025",
     "title": "High School Graduation (Abitur)",
     "place": "Northern Germany",
-    "description": "Finished school — with coding already a bigger part of my life than most of my classes.",
+    "description": "Finished school with advanced courses in mathematics and physics.",
     "type": "graduation"
   },
   {
@@ -35,6 +35,14 @@
     "description": "Studying physics at CAU Kiel, bridging the gap between scientific thinking and software — simulations, data analysis, and everything in between.",
     "type": "education",
     "ongoing": true
+  },
+  {
+    "year": "May 2026",
+    "until": "Oct 2026",
+    "title": "Research Internship in Astrophysics",
+    "place": "AG Wolf, CAU Kiel",
+    "description": "Worked with Monte Carlo radiative transfer simulations of protoplanetary disks (HAMSTER) and built hamster-animator, which turns them into camera flights and polarization maps and runs on the group's SLURM cluster.",
+    "type": "work"
   },
   {
     "year": "Aug 2026",
