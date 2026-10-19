@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { fetchData } from '../lib/fetchData';
+import { fetchLog, formatDate } from '../lib/logbook';
+import type { Building } from '../lib/site';
+import 'katex/dist/katex.min.css';
+
+// Every logbook entry of the projects in data/building.json, newest first per project
+const items = await fetchData<Building[]>('building.json');
+const projects = await Promise.all(
+  items.filter(item => item.log).map(async item => ({ ...item, entries: await fetchLog(item.log!) })),
+);
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+
+<BaseLayout
+  title="Logbook — CoMaE"
+  description="Lab notes from the projects I'm working on: one entry per session, what I did and what I learned, from Raman spectra and Poisson noise to training my first models."
+>
+  <main class="px-5 pt-20 pb-24 md:pt-28">
+    <div class="mx-auto max-w-3xl">
+      <a href="/#building" class="font-mono text-xs text-muted hover:text-zinc-200 transition-colors">← comae.dev</a>
+      <p class="mt-10 font-mono text-[11px] uppercase tracking-widest text-muted mb-3">Logbook</p>
+      <h1 class="font-serif text-6xl md:text-7xl leading-none text-zinc-50 mb-5">Lab <em class="text-amber-300">notes</em></h1>
+      <p class="text-zinc-400 leading-relaxed max-w-xl mb-16">
+        One entry per session on what I'm building: what I did, what went wrong and what I learned.
+      </p>
+
+      {projects.map(project => (
+        <section id={slug(project.title)} class="mb-20 last:mb-0">
+          <div class="border-b border-zinc-800 pb-6 mb-10">
+            <p class="font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-2">In progress · since {project.started}</p>
+            <h2 class="text-2xl font-semibold text-zinc-50 mb-2">{project.title}</h2>
+            <p class="font-serif italic text-xl leading-snug text-zinc-300 mb-4">{project.question}</p>
+            {project.repo && (
+              <a href={project.repo} target="_blank" rel="noopener noreferrer" class="font-mono text-xs text-zinc-400 hover:text-white transition-colors">
+                Code on GitHub ↗
+              </a>
+            )}
+          </div>
+
+          {project.entries.length > 0 ? (
+            <ol class="space-y-12">
+              {project.entries.map(entry => (
+                <li id={`${slug(project.title)}-${entry.date}`} class="grid md:grid-cols-[8rem_1fr] gap-2 md:gap-8">
+                  <time datetime={entry.date} class="font-mono text-xs text-muted md:pt-1">{formatDate(entry.date)}</time>
+                  <article>
+                    <h3 class="text-lg font-medium text-zinc-100 mb-3">{entry.title}</h3>
+                    <div class="log-body text-[15px] leading-relaxed text-zinc-400" set:html={entry.html} />
+                  </article>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p class="text-sm text-muted">No entries yet.</p>
+          )}
+        </section>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

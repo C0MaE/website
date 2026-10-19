@@ -1,0 +1,114 @@
+---
+import { fetchData } from '../lib/fetchData';
+import { fetchLog, formatDate } from '../lib/logbook';
+import SectionHeader from './SectionHeader.astro';
+import 'katex/dist/katex.min.css';
+
+// What is being worked on right now, with its milestones. Lives in data/building.json,
+// so ticking off a milestone goes live without a rebuild.
+interface Milestone { label: string; status: 'done' | 'active' | 'todo' }
+interface Building {
+  title: string;
+  question: string;
+  description: string;
+  started: string;
+  target?: string;
+  repo?: string | null;
+  /** Raw URL of the project's LOG.md (see lib/logbook.ts) */
+  log?: string | null;
+  tags: string[];
+  milestones: Milestone[];
+}
+
+const items = await fetchData<Building[]>('building.json');
+const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) : Promise.resolve([]))));
+---
+
+{items.length > 0 && (
+  <section id="building" class="pb-20 md:pb-28 px-5">
+    <div class="page-container">
+      <SectionHeader eyebrow="In progress" title="Currently <em class='text-amber-300'>building</em>" />
+
+      <div class="space-y-5">
+        {items.map((item, index) => {
+          const done = item.milestones.filter(m => m.status === 'done').length;
+          return (
+            <article class="reveal grid lg:grid-cols-[1.35fr_1fr] gap-8 lg:gap-12 p-6 md:p-8 rounded-2xl border border-zinc-800 bg-zinc-900/60">
+              <div>
+                <p class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-3">
+                  <span class="relative flex w-2 h-2">
+                    <span class="absolute inset-0 rounded-full bg-amber-300 opacity-60 animate-ping" />
+                    <span class="relative w-2 h-2 rounded-full bg-amber-300" />
+                  </span>
+                  In progress · since {item.started}
+                </p>
+                <h3 class="text-2xl font-semibold text-zinc-50 mb-3">{item.title}</h3>
+                <p class="font-serif italic text-xl md:text-2xl leading-snug text-zinc-200 mb-4">{item.question}</p>
+                <p class="text-zinc-400 text-sm leading-relaxed mb-5">{item.description}</p>
+                <ul class="flex flex-wrap gap-1.5 mb-6">
+                  {item.tags.map(tag => (
+                    <li class="font-mono text-[11px] px-2 py-0.5 rounded-full border border-zinc-800 text-zinc-400">{tag}</li>
+                  ))}
+                </ul>
+                {item.repo && (
+                  <a href={item.repo} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-700 hover:border-zinc-400 text-sm text-zinc-300 hover:text-white transition-colors">
+                    Follow along on GitHub <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+              </div>
+
+              <div>
+                <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-4">
+                  Milestones · {done} of {item.milestones.length} done
+                </p>
+                <ol class="relative">
+                  {item.milestones.map((m, i) => (
+                    <li class="relative flex gap-4 pb-5 last:pb-0">
+                      {i < item.milestones.length - 1 && (
+                        <span class={`absolute left-[7px] top-5 bottom-0 w-px ${m.status === 'done' ? 'bg-emerald-400/50' : 'bg-zinc-800'}`} aria-hidden="true" />
+                      )}
+                      <span class="relative mt-1 shrink-0 w-[15px] h-[15px] grid place-items-center" aria-hidden="true">
+                        {m.status === 'done' ? (
+                          <span class="w-[15px] h-[15px] rounded-full bg-emerald-400 text-zinc-950 text-[10px] leading-none grid place-items-center">✓</span>
+                        ) : m.status === 'active' ? (
+                          <span class="w-[11px] h-[11px] rounded-full bg-amber-300 shadow-[0_0_10px] shadow-amber-300/70" />
+                        ) : (
+                          <span class="w-[11px] h-[11px] rounded-full border border-zinc-600" />
+                        )}
+                      </span>
+                      <span class={`text-sm leading-relaxed ${m.status === 'todo' ? 'text-muted' : m.status === 'active' ? 'text-zinc-100' : 'text-zinc-400'}`}>
+                        {m.label}
+                        <span class="sr-only">{m.status === 'done' ? ' (done)' : m.status === 'active' ? ' (in progress)' : ' (to do)'}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {item.target && <p class="mt-5 font-mono text-[11px] text-faint">{item.target}</p>}
+              </div>
+
+              {logs[index].length > 0 && (
+                <div class="lg:col-span-2 border-t border-zinc-800 pt-6">
+                  <div class="flex items-baseline justify-between gap-4 mb-5">
+                    <p class="font-mono text-[11px] uppercase tracking-widest text-muted">Logbook · latest entries</p>
+                    <a href="/log" class="font-mono text-[11px] text-zinc-400 hover:text-white transition-colors">All entries →</a>
+                  </div>
+                  <ol class="space-y-7">
+                    {logs[index].slice(0, 3).map(entry => (
+                      <li class="grid md:grid-cols-[7.5rem_1fr] gap-1 md:gap-6">
+                        <time datetime={entry.date} class="font-mono text-xs text-muted md:pt-0.5">{formatDate(entry.date)}</time>
+                        <div>
+                          <h4 class="text-zinc-100 font-medium mb-2">{entry.title}</h4>
+                          <div class="log-body text-sm leading-relaxed text-zinc-400" set:html={entry.html} />
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+)}

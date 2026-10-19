@@ -1,4 +1,5 @@
 import { fetchData } from './fetchData';
+import { fetchLog, type LogEntry } from './logbook';
 
 export const SITE_URL = 'https://comae.dev';
 export const SITE_NAME = 'CoMaE';
@@ -8,19 +9,22 @@ export interface Project { title: string; description: string; tags: string[]; g
 export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null; note?: string | null }
 export interface SkillCategory { name: string; icon: string; skills: string[] }
 export interface TimelineEvent { year: string; title: string; place: string; description: string; type: string; ongoing?: boolean; until?: string }
+export interface Building { title: string; question: string; description: string; started: string; target?: string; repo?: string | null; log?: string | null; tags: string[]; milestones: { label: string; status: 'done' | 'active' | 'todo' }[] }
 export interface Contact { email: string; socials: { label: string; href: string }[] }
 
 /** Everything the page is built from, loaded once so SEO data and page content never disagree */
 export async function loadSite() {
-  const [hero, projects, research, skills, timeline, contact] = await Promise.all([
+  const [hero, projects, research, skills, timeline, contact, building] = await Promise.all([
     fetchData<Hero>('hero.json'),
     fetchData<Project[]>('projects.json'),
     fetchData<ResearchProject[]>('research.json'),
     fetchData<SkillCategory[]>('skills.json'),
     fetchData<TimelineEvent[]>('timeline.json'),
     fetchData<Contact>('contact.json'),
+    fetchData<Building[]>('building.json'),
   ]);
-  return { hero, projects, research, skills, timeline, contact };
+  const logs: LogEntry[][] = await Promise.all(building.map(b => (b.log ? fetchLog(b.log) : Promise.resolve([]))));
+  return { hero, projects, research, skills, timeline, contact, building: building.map((b, i) => ({ ...b, entries: logs[i] })) };
 }
 export type Site = Awaited<ReturnType<typeof loadSite>>;
 
@@ -124,6 +128,14 @@ export function llmsTxt(s: Site) {
     '## Now',
     '',
     ...s.timeline.filter(isCurrent).reverse().map(e => `- ${e.title} — ${e.place}${/\d{4}/.test(e.year) ? ` (since ${e.year})` : ''}`),
+    '',
+    '## Currently building',
+    '',
+    ...s.building.flatMap(b => [
+      `- ${link(b.title, b.repo ?? null)} (in progress since ${b.started}): ${b.question} ${sentence(b.description)}`,
+      ...b.milestones.map(m => `  - [${m.status === 'done' ? 'x' : ' '}] ${m.label}${m.status === 'active' ? ' (in progress)' : ''}`),
+      ...(b.entries.length ? [`  - Logbook (${SITE_URL}/log): ${b.entries.slice(0, 5).map(e => `${e.date} ${e.title}`).join('; ')}`] : []),
+    ]),
     '',
     '## Research & university work',
     '',

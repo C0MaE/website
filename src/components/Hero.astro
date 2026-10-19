@@ -53,7 +53,7 @@ const { typewriterWords: roles, bio, now = [] } = await fetchData<HeroData>('her
             <li class="flex items-center gap-3 text-sm text-zinc-300">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px] shadow-amber-400/60" />
               {item.href ? (
-                <a href={item.href} target="_blank" rel="noopener noreferrer" class="hover:text-white underline decoration-zinc-700 underline-offset-4 hover:decoration-zinc-400">{item.label}</a>
+                <a href={item.href} {...(item.href.startsWith('#') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} class="hover:text-white underline decoration-zinc-700 underline-offset-4 hover:decoration-zinc-400">{item.label}</a>
               ) : item.label}
             </li>
           ))}

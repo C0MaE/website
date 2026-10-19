@@ -42,6 +42,18 @@
   }
 }
 
+/* Logbook entries rendered from Markdown (lib/logbook.ts) */
+@layer components {
+  .log-body > * + * { margin-top: 0.75em; }
+  .log-body a { @apply text-zinc-200 underline decoration-zinc-600 underline-offset-4 hover:decoration-zinc-300; }
+  .log-body code { @apply font-mono text-[0.85em] px-1 py-0.5 rounded bg-zinc-800/80 text-zinc-200; }
+  .log-body strong { @apply font-semibold text-zinc-200; }
+  .log-body ul { @apply list-disc pl-5 space-y-1; }
+  .log-body ol { @apply list-decimal pl-5 space-y-1; }
+  .log-body .katex { font-size: 1.05em; @apply text-zinc-200; }
+  .log-body .katex-display { margin: 0.9em 0; overflow-x: auto; overflow-y: hidden; }
+}
+
 @layer utilities {
   /* Content width grows with the screen so large monitors aren't mostly margin */
   .page-container {

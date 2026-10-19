@@ -1,0 +1,40 @@
+[
+  {
+    "title": "Raman detection limits",
+    "question": "How long does a spectrometer have to measure before a model reliably tells a real Raman signal from noise?",
+    "description": "Synthetic Raman spectra of carbon nanotubes with Poisson and read-out noise. A baseline without machine learning, logistic regression, a random forest and a 1D CNN are compared by the signal-to-noise ratio at which each finds half of the signals. Since that ratio grows with the square root of the exposure time, it sets a minimum measurement time.",
+    "started": "Oct 2026",
+    "target": "Results by mid-November",
+    "repo": "https://github.com/C0MaE/raman-detection-limits",
+    "log": "https://raw.githubusercontent.com/C0MaE/raman-detection-limits/main/LOG.md",
+    "tags": [
+      "Python",
+      "NumPy",
+      "scikit-learn",
+      "PyTorch",
+      "Raman spectroscopy"
+    ],
+    "milestones": [
+      {
+        "label": "Peak shapes and exposure-time model, with tests",
+        "status": "done"
+      },
+      {
+        "label": "Noisy spectra and a baseline without ML",
+        "status": "active"
+      },
+      {
+        "label": "First trained models: logistic regression, random forest",
+        "status": "todo"
+      },
+      {
+        "label": "Detection rate against SNR for every model",
+        "status": "todo"
+      },
+      {
+        "label": "1D CNN in PyTorch, README with results",
+        "status": "todo"
+      }
+    ]
+  }
+]
