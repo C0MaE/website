@@ -5,21 +5,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="Lost in space — CoMaE" description="This page doesn't exist (anymore)." noindex>
   <main class="relative min-h-screen overflow-hidden px-5 pt-24 pb-6 lg:py-0 lg:flex lg:items-center">
     <div class="relative z-10 page-container lg:py-24 pointer-events-none">
-      <p class="font-mono text-xs text-muted tracking-wider mb-6">404 · Page not found</p>
-      <h1 class="font-serif text-7xl sm:text-8xl md:text-9xl leading-[0.9] text-zinc-50 mb-6">
-        Escaped <em class="text-accent-light">orbit.</em>
-      </h1>
-      <p class="text-zinc-300 text-lg md:text-xl leading-relaxed max-w-md mb-8 lg:mb-10">
-        This page reached escape velocity — or never existed. The probe is about to follow. Can you catch it?
+      <p class="text-[15px] text-muted mb-4">Error 404, page not found</p>
+      <h1 class="text-5xl md:text-6xl font-medium leading-tight text-zinc-50 mb-5">Escaped orbit.</h1>
+      <p class="text-zinc-300 text-lg md:text-xl leading-relaxed max-w-md mb-8">
+        This page reached escape velocity, or never existed. The probe is about to follow. Can you catch it?
       </p>
-      <div class="flex flex-wrap items-center gap-3 pointer-events-auto">
-        <a href="/" class="px-5 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-full font-medium text-sm transition-colors">
-          ← Back home
-        </a>
-        <a href="/#projects" class="px-5 py-2.5 border border-zinc-700 hover:border-zinc-400 text-zinc-300 hover:text-white rounded-full text-sm transition-colors">
-          See my projects
-        </a>
-      </div>
+      <p class="flex flex-wrap gap-x-6 text-lg pointer-events-auto">
+        <a href="/" class="link">← Back home</a>
+        <a href="/#projects" class="link">Projects</a>
+      </p>
     </div>
 
     <!-- Mini game: brake the probe from its hyperbolic flyby into an orbit -->
@@ -27,16 +21,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <canvas id="game-canvas" data-native-cursor class="absolute inset-0 w-full h-full touch-none select-none cursor-crosshair" role="img" aria-label="Mini game: hold to fire the probe's retro-thrusters and brake it into an orbit around the planet"></canvas>
 
       <div id="game-msg" class="absolute inset-x-0 top-4 lg:top-[13%] px-6 text-center pointer-events-none opacity-0 transition-opacity duration-300" aria-live="polite" inert>
-        <p class="font-serif text-3xl md:text-4xl text-zinc-50" data-title></p>
-        <p class="mt-1 text-sm text-zinc-400 max-w-xs mx-auto leading-relaxed" data-text></p>
-        <button type="button" class="mt-4 px-4 py-2 rounded-full border border-zinc-700 hover:border-zinc-400 text-zinc-300 hover:text-white text-sm transition-colors" data-again>Try again</button>
+        <p class="text-2xl md:text-3xl font-semibold text-zinc-50" data-title></p>
+        <p class="mt-1 text-[15px] text-zinc-400 max-w-xs mx-auto leading-relaxed" data-text></p>
+        <button type="button" class="mt-3 link" data-again>Try again</button>
       </div>
 
-      <div class="absolute inset-x-0 bottom-4 lg:bottom-[12%] flex flex-col items-center gap-2 pointer-events-none font-mono text-[11px]">
+      <div class="absolute inset-x-0 bottom-4 lg:bottom-[12%] flex flex-col items-center gap-2 pointer-events-none text-sm tabular-nums">
         <p id="game-hint" class="text-muted transition-opacity duration-500">Hold to fire the retro-thrusters</p>
         <div class="flex items-center gap-3 text-zinc-400">
-          <span>FUEL</span>
-          <span class="w-24 h-1 rounded-full bg-zinc-800 overflow-hidden"><span id="game-fuel" class="block h-full w-full bg-amber-400 origin-left"></span></span>
+          <span>Fuel</span>
+          <span class="w-24 h-1 rounded-full bg-zinc-800 overflow-hidden"><span id="game-fuel" class="block h-full w-full bg-accent origin-left"></span></span>
           <span id="game-ecc" class="w-44 whitespace-nowrap">&nbsp;</span>
         </div>
       </div>
@@ -103,7 +97,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     state = next; burning = false;
     const { e } = elements(probe);
     if (next === 'captured') {
-      const rating = e < 0.15 ? 'Nearly circular — textbook.' : e < 0.5 ? 'A solid, stable orbit.' : 'Wobbly, but it counts.';
+      const rating = e < 0.15 ? 'Nearly circular, textbook.' : e < 0.5 ? 'A solid, stable orbit.' : 'Wobbly, but it counts.';
       say('Back in orbit.', `${rating} e = ${e.toFixed(2)}, ${Math.round((probe.fuel / FUEL) * 100)} % fuel left.`, 'Fly again');
     } else if (next === 'crashed') {
       boom = { x: probe.x, y: probe.y, t: 0 };
@@ -159,12 +153,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     // Planet, halo and the atmosphere line that must not be crossed
     const halo = ctx.createRadialGradient(cx, cy, pr, cx, cy, pr * 2.8);
-    halo.addColorStop(0, 'rgba(167,139,250,0.22)'); halo.addColorStop(1, 'rgba(167,139,250,0)');
+    halo.addColorStop(0, 'rgba(159,183,201,0.2)'); halo.addColorStop(1, 'rgba(159,183,201,0)');
     ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(cx, cy, pr * 2.8, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(167,139,250,0.25)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(159,183,201,0.25)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, CRASH_R * scale, 0, Math.PI * 2); ctx.stroke();
     const body = ctx.createRadialGradient(cx - pr * 0.36, cy - pr * 0.44, pr * 0.05, cx, cy, pr);
-    body.addColorStop(0, '#ede9fe'); body.addColorStop(0.35, '#a78bfa'); body.addColorStop(0.8, '#6d28d9'); body.addColorStop(1, '#3b0764');
+    body.addColorStop(0, '#eef3f7'); body.addColorStop(0.35, '#9fb7c9'); body.addColorStop(0.8, '#4a6274'); body.addColorStop(1, '#1b2731');
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, pr, 0, Math.PI * 2); ctx.fill();
 
     // Where it is heading if you let go now

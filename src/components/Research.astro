@@ -1,7 +1,6 @@
 ---
 import { fetchData } from '../lib/fetchData';
 import SectionHeader from './SectionHeader.astro';
-import WorkCard from './WorkCard.astro';
 
 interface ResearchProject {
   title: string;
@@ -12,35 +11,72 @@ interface ResearchProject {
   github: string | null;
   image: string | null;
   video: string | null;
+  /** Why there is no code link, e.g. "Code available on request" */
   note?: string | null;
+  /** Figure caption under the image, like in a paper */
+  caption?: string | null;
 }
 
 const projects = await fetchData<ResearchProject[]>('research.json');
 ---
 
-<section id="research" class="py-20 md:py-28 px-5">
-  <div class="page-container xl:grid xl:grid-cols-3 xl:gap-10">
+<section id="research" class="py-14 md:py-20 px-5">
+  <div class="page-container">
     <SectionHeader
-      eyebrow="Research & Uni"
-      title="Science, <em class='text-emerald-300'>in code</em>"
-      intro="Software I build alongside my physics studies — tools for simulations, data and the lab."
+      title="Research"
+      intro="Software I write alongside my physics studies, for simulations, data and the lab."
     />
 
-    <div class="grid md:grid-cols-2 gap-5 xl:col-span-2">
-      {projects.map(p => (
-        <WorkCard
-          title={p.title}
-          description={p.description}
-          tags={p.tags}
-          github={p.github}
-          image={p.image}
-          video={p.video}
-          label={p.affiliation}
-          labelUrl={p.affiliationUrl}
-          tone="emerald"
-          fit={p.image?.endsWith('.svg') ? 'contain' : 'cover'}
-          note={p.note}
-        />
+    <div class="space-y-16 md:space-y-20">
+      {projects.map((p, i) => (
+        <article class="grid md:grid-cols-2 gap-6 md:gap-12 lg:gap-16 items-start">
+          <figure>
+            <div class="aspect-[16/10] bg-black border border-zinc-900 overflow-hidden">
+              {p.video ? (
+                <video
+                  aria-label={`${p.title}, preview animation`}
+                  src={p.video}
+                  poster={p.image ?? undefined}
+                  autoplay muted loop playsinline preload="metadata"
+                  class="autoplay-video w-full h-full object-contain"
+                />
+              ) : p.image ? (
+                <img
+                  src={p.image}
+                  alt={`${p.title}, preview`}
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                  decoding="async"
+                  class={`w-full h-full ${p.image.endsWith('.svg') ? 'object-contain' : 'object-cover object-top'}`}
+                />
+              ) : null}
+            </div>
+            {p.caption && (
+              <figcaption class="mt-3 text-[15px] leading-snug text-muted">
+                <span class="text-zinc-300">Fig. {i + 1}.</span> {p.caption}
+              </figcaption>
+            )}
+          </figure>
+
+          <div class="md:pt-1">
+            {p.affiliation && (
+              <p class="text-[15px] text-muted mb-1">
+                {p.affiliationUrl ? (
+                  <a href={p.affiliationUrl} target="_blank" rel="noopener noreferrer" class="hover:text-zinc-200 transition-colors">{p.affiliation}</a>
+                ) : p.affiliation}
+              </p>
+            )}
+            <h3 class="text-xl md:text-2xl font-semibold leading-snug text-zinc-50 mb-3">{p.title}</h3>
+            <p class="leading-relaxed text-zinc-300 mb-4">{p.description}</p>
+            <p class="text-[15px] text-muted">{p.tags.join(', ')}</p>
+            <p class="mt-5 text-[15px]">
+              {p.github ? (
+                <a href={p.github} target="_blank" rel="noopener noreferrer" class="link">Code on GitHub ↗</a>
+              ) : p.note && <span class="italic text-muted">{p.note}</span>}
+            </p>
+          </div>
+        </article>
       ))}
     </div>
   </div>

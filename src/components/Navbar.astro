@@ -1,33 +1,29 @@
 ---
 const links = [
   { href: '#research', label: 'Research' },
+  { href: '#building', label: 'In progress' },
   { href: '#projects', label: 'Projects' },
   { href: '#timeline', label: 'Journey' },
-  { href: '#skills', label: 'Skills' },
   { href: '#contact', label: 'Contact' },
 ];
 ---
 
 <header
   id="navbar"
-  class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+  class="fixed top-0 left-0 right-0 z-50 border-b border-transparent transition-colors duration-300"
 >
   <nav class="page-container px-5 py-3.5 flex items-center justify-between">
     <a href="#hero" class="flex items-center gap-2.5 text-zinc-100 hover:text-white transition-colors">
-      <img src="/profile_pic_light.svg" alt="" width="28" height="28" class="w-7 h-7" />
-      <span class="font-serif text-xl leading-none">CoMaE</span>
+      <img src="/profile_pic_light.svg" alt="" width="24" height="24" class="w-6 h-6" />
+      <span class="text-lg font-semibold leading-none">CoMaE</span>
     </a>
 
     <!-- Desktop links -->
-    <ul class="hidden md:flex items-center gap-8">
+    <ul class="hidden md:flex items-center gap-7">
       {links.map((link) => (
         <li>
-          <a
-            href={link.href}
-            class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors relative group"
-          >
+          <a href={link.href} class="text-[15px] text-zinc-400 hover:text-zinc-100 transition-colors">
             {link.label}
-            <span class="absolute -bottom-0.5 left-0 w-0 h-px bg-accent-light transition-all duration-300 group-hover:w-full" />
           </a>
         </li>
       ))}
@@ -36,20 +32,20 @@ const links = [
     <!-- Mobile menu button -->
     <button id="menu-btn" class="md:hidden text-zinc-400 hover:text-zinc-100" aria-label="Toggle menu">
       <svg id="icon-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7h16M4 12h16M4 17h16" />
       </svg>
       <svg id="icon-close" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
   </nav>
 
   <!-- Mobile menu -->
-  <div id="mobile-menu" class="hidden md:hidden bg-zinc-900/95 backdrop-blur border-t border-zinc-800">
-    <ul class="flex flex-col px-6 py-4 gap-4">
+  <div id="mobile-menu" class="hidden md:hidden bg-zinc-950 border-t border-zinc-900">
+    <ul class="flex flex-col px-5 py-4 gap-3">
       {links.map((link) => (
         <li>
-          <a href={link.href} class="text-zinc-300 hover:text-zinc-100 text-sm transition-colors">
+          <a href={link.href} class="text-zinc-300 hover:text-zinc-100 transition-colors">
             {link.label}
           </a>
         </li>
@@ -65,14 +61,15 @@ const links = [
   const iconOpen = document.getElementById('icon-open')!;
   const iconClose = document.getElementById('icon-close')!;
 
-  // Scroll effect
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      navbar.classList.add('bg-zinc-950/80', 'backdrop-blur', 'border-b', 'border-zinc-800/50');
-    } else {
-      navbar.classList.remove('bg-zinc-950/80', 'backdrop-blur', 'border-b', 'border-zinc-800/50');
-    }
-  });
+  // Solid background once the page scrolls under it
+  const onScroll = () => {
+    const scrolled = window.scrollY > 50;
+    navbar.classList.toggle('bg-zinc-950/95', scrolled);
+    navbar.classList.toggle('border-zinc-900', scrolled);
+    navbar.classList.toggle('border-transparent', !scrolled);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
   // Mobile menu toggle
   menuBtn.addEventListener('click', () => {

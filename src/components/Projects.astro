@@ -1,7 +1,6 @@
 ---
 import { fetchData } from '../lib/fetchData';
 import SectionHeader from './SectionHeader.astro';
-import WorkCard from './WorkCard.astro';
 
 interface Project {
   title: string;
@@ -13,49 +12,52 @@ interface Project {
   image: string | null;
 }
 
-const projects = await fetchData<Project[]>('projects.json');
-const featured = projects.filter(p => p.featured);
-const others = projects.filter(p => !p.featured);
+// Only the featured ones; the rest stay in the data for llms.txt
+const projects = (await fetchData<Project[]>('projects.json')).filter(p => p.featured);
+const host = (url: string) => new URL(url).host;
 ---
 
-<section id="projects" class="py-20 md:py-28 px-5 bg-zinc-900/30">
+<section id="projects" class="py-14 md:py-20 px-5">
   <div class="page-container">
-    <SectionHeader eyebrow="Projects" title="Things I've <em class='text-accent-light'>built</em>" />
+    <SectionHeader title="Projects" intro="Software I've built outside of university." />
 
-    <div class="grid md:grid-cols-2 3xl:grid-cols-4 gap-5">
-      {featured.map(p => (
-        <WorkCard
-          title={p.title}
-          description={p.description}
-          tags={p.tags}
-          github={p.github}
-          live={p.live}
-          image={p.image}
-          fit={p.image?.endsWith('.svg') ? 'contain' : 'cover'}
-        />
-      ))}
-    </div>
-
-    {others.length > 0 && (
-      <div class="reveal mt-14">
-        <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-4">Smaller things</p>
-        <ul class="divide-y divide-zinc-800 border-y border-zinc-800">
-          {others.map(p => (
-            <li>
-              <a
-                href={p.live ?? p.github ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-4 hover:bg-zinc-900/60 -mx-3 px-3 rounded-lg transition-colors"
-              >
-                <span class="font-medium text-zinc-100 sm:w-48 shrink-0 group-hover:text-white">{p.title}</span>
-                <span class="text-sm text-muted flex-1">{p.description}</span>
-                <span class="font-mono text-xs text-faint">{p.tags.join(' · ')}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
+    <ul class="grid lg:grid-cols-2 gap-x-16 gap-y-12">
+      {projects.map(p => {
+        const href = p.live ?? p.github;
+        return (
+          <li class="grid grid-cols-[5.5rem_1fr] sm:grid-cols-[11rem_1fr] gap-4 sm:gap-6 items-start">
+            <a
+              href={href ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block aspect-[16/10] bg-black border border-zinc-900 overflow-hidden mt-1"
+              tabindex="-1"
+              aria-hidden="true"
+            >
+              {p.image && (
+                <img
+                  src={p.image}
+                  alt=""
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                  decoding="async"
+                  class={`w-full h-full ${p.image.endsWith('.svg') ? 'object-contain' : 'object-cover object-top'}`}
+                />
+              )}
+            </a>
+            <div>
+              <h3 class="text-lg font-semibold leading-snug text-zinc-50 mb-1">{p.title}</h3>
+              <p class="text-[15px] leading-relaxed text-zinc-400 mb-2">{p.description}</p>
+              <p class="text-[15px] text-muted mb-2">{p.tags.join(', ')}</p>
+              <p class="text-[15px] flex flex-wrap gap-x-5">
+                {p.live && <a href={p.live} target="_blank" rel="noopener noreferrer" class="link">{host(p.live)} ↗</a>}
+                {p.github && <a href={p.github} target="_blank" rel="noopener noreferrer" class="link">Code ↗</a>}
+              </p>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   </div>
 </section>

@@ -8,38 +8,19 @@ export default {
         '3xl': '1920px',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-        serif: ['Instrument Serif', 'Georgia', 'serif'],
+        // One typeface for everything; self-hosted from @fontsource-variable (see BaseLayout)
+        serif: ['"Source Serif 4 Variable"', 'Georgia', 'serif'],
       },
       colors: {
+        // The only accent: warm sunlight, used sparingly (now markers, selection)
         accent: {
-          DEFAULT: '#7c3aed',
-          light: '#a78bfa',
-          dark: '#5b21b6',
+          DEFAULT: '#d9b26f',
+          light: '#e6c88f',
+          dark: '#a8823f',
         },
         // Secondary text greys, just light enough for WCAG AA (4.5:1) on the zinc-950 page
         muted: '#8f8f98',
         faint: '#7c7c85',
-      },
-      animation: {
-        'fade-in': 'fadeIn 0.6s ease forwards',
-        'slide-up': 'slideUp 0.6s ease forwards',
-        'blink': 'blink 1s step-end infinite',
-      },
-      keyframes: {
-        fadeIn: {
-          from: { opacity: '0' },
-          to: { opacity: '1' },
-        },
-        slideUp: {
-          from: { opacity: '0', transform: 'translateY(20px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
-        blink: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0' },
-        },
       },
     },
   },

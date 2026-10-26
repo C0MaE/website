@@ -4,7 +4,7 @@ import { fetchLog, type LogEntry } from './logbook';
 export const SITE_URL = 'https://comae.dev';
 export const SITE_NAME = 'CoMaE';
 
-export interface Hero { name?: string; typewriterWords: string[]; bio: string; now?: { label: string; href?: string }[] }
+export interface Hero { name?: string; headline?: string; typewriterWords: string[]; bio: string; now?: { label: string; href?: string }[] }
 export interface Project { title: string; description: string; tags: string[]; github: string | null; live: string | null; featured: boolean; image: string | null }
 export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null; note?: string | null }
 export interface SkillCategory { name: string; icon: string; skills: string[] }
@@ -121,7 +121,7 @@ export function llmsTxt(s: Site) {
     '',
     `> ${pageDescription(s)}`,
     '',
-    s.hero.bio,
+    [s.hero.headline, s.hero.bio].filter(Boolean).join(' '),
     '',
     `${s.hero.name ? `Real name ${s.hero.name}, known online as ${SITE_NAME}. ` : ''}Roles: ${s.hero.typewriterWords.join(', ')}. Based in Kiel, Germany.`,
     '',

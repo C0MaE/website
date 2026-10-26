@@ -16,17 +16,12 @@ interface TimelineEvent {
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
 
-const planet: Record<string, string> = {
-  education: 'bg-accent-light shadow-accent-light/50',
-  work: 'bg-emerald-400 shadow-emerald-400/50',
-  milestone: 'bg-zinc-400 shadow-zinc-400/40',
-  graduation: 'bg-amber-400 shadow-amber-400/50',
-};
-const tone: Record<string, { bg: string; border: string; hex: string }> = {
-  education: { bg: 'bg-accent-light', border: 'border-accent-light', hex: '#a78bfa' },
-  work: { bg: 'bg-emerald-400', border: 'border-emerald-400', hex: '#34d399' },
-  milestone: { bg: 'bg-zinc-400', border: 'border-zinc-400', hex: '#a1a1aa' },
-  graduation: { bg: 'bg-amber-400', border: 'border-amber-400', hex: '#fbbf24' },
+// Soft colours per kind of station; gold is the site's accent, the rest stay quiet
+const tone: Record<string, string> = {
+  education: '#e6c88f',
+  work: '#9fb7c9',
+  milestone: '#a1a1aa',
+  graduation: '#f4f4f5',
 };
 const toneOf = (e: TimelineEvent) => tone[e.type] ?? tone.milestone;
 
@@ -65,55 +60,55 @@ const offsetAt = (i: number) => {
 const stationOffset = current.length ? 1 : 0;
 
 // One moon per current thing; dated ones are the ranges the comet carries up (matched by index into events)
-const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, color: toneOf(e).hex }));
+const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, color: toneOf(e) }));
 ---
 
-<section id="timeline" class="py-20 md:py-28 px-5">
+<section id="timeline" class="py-14 md:py-20 px-5">
   <div class="page-container">
-    <SectionHeader eyebrow="Journey" title="How I <em class='text-accent-light'>got here</em>" />
+    <SectionHeader title="Journey" />
 
     <ol id="trajectory" class="relative [--amp:1.75rem] md:[--amp:min(34vw,32rem)]" data-moons={JSON.stringify(moons)}>
       <svg id="traj-svg" class="absolute inset-0 w-full h-full overflow-visible pointer-events-none" aria-hidden="true">
         <defs>
           <linearGradient id="traj-gradient" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0" stop-color="#3f3f46" stop-opacity="0.4" />
-            <stop offset="1" stop-color="#a78bfa" stop-opacity="0.9" />
+            <stop offset="1" stop-color="#d9b26f" stop-opacity="0.8" />
           </linearGradient>
           <!-- Lit from the upper left, like a sphere -->
           <radialGradient id="now-glow" cx="0.5" cy="0.5" fx="0.32" fy="0.28" r="0.6">
-            <stop offset="0" stop-color="#ede9fe" />
-            <stop offset="0.35" stop-color="#a78bfa" />
-            <stop offset="0.8" stop-color="#6d28d9" />
-            <stop offset="1" stop-color="#3b0764" />
+            <stop offset="0" stop-color="#fbf3e2" />
+            <stop offset="0.35" stop-color="#e6c88f" />
+            <stop offset="0.8" stop-color="#9a7740" />
+            <stop offset="1" stop-color="#3a2c14" />
           </radialGradient>
         </defs>
         <path id="traj-path" d="" fill="none" stroke="url(#traj-gradient)" stroke-width="1.5" stroke-dasharray="4 6" />
         <!-- Depth order: trails, moons behind the planet, the planet, moons in front, comet, flashes -->
         <g id="layer-trails"></g>
         <g id="layer-back"></g>
-        <circle id="now-halo" r="17" fill="#8b5cf6" opacity="0" style="filter: blur(5px)" />
+        <circle id="now-halo" r="15" fill="#d9b26f" opacity="0" style="filter: blur(6px)" />
         <circle id="now-planet" r="9" fill="url(#now-glow)" opacity="0" />
         <g id="layer-front"></g>
         <g id="layer-fx"></g>
       </svg>
 
       {current.length > 0 && (
-        <li class="reveal relative pb-14" style={`padding-left: calc(${offsetAt(0)} * var(--amp) + 3.5rem)`}>
+        <li class="relative pb-14" style={`padding-left: calc(${offsetAt(0)} * var(--amp) + 3.5rem)`}>
           <!-- Anchor for the "now" planet, which is drawn in the SVG so moons can pass behind and in front of it -->
           <span class="traj-dot now-dot absolute top-0 w-5 h-5 -ml-1 rounded-full opacity-0" style={`left: calc(${offsetAt(0)} * var(--amp))`} />
 
-          <p class="font-mono text-[11px] uppercase tracking-widest text-accent-light mb-3">Now</p>
+          <p class="italic text-accent mb-3">Now</p>
           <div class="grid gap-6">
             {current.map(e => (
               <article>
-                <h3 class="flex items-center gap-2.5 text-zinc-50 font-medium text-lg leading-snug">
-                  <span class={`w-1.5 h-1.5 shrink-0 rounded-full ${toneOf(e).bg}`} />
+                <h3 class="flex items-center gap-2.5 text-zinc-50 font-semibold text-lg leading-snug">
+                  <span class="w-1.5 h-1.5 shrink-0 rounded-full" style={`background:${toneOf(e)}`} />
                   {e.title}
                 </h3>
-                <p class="font-mono text-xs text-muted mb-2 pl-4">
-                  {e.place}{hasDate(e) && <span class="text-faint"> · since {e.year}</span>}
+                <p class="text-[15px] text-muted mb-1.5 pl-4">
+                  {e.place}{hasDate(e) && <span>, since {e.year}</span>}
                 </p>
-                <p class="text-sm text-zinc-400 leading-relaxed max-w-md pl-4">{e.description}</p>
+                <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md pl-4">{e.description}</p>
               </article>
             ))}
           </div>
@@ -126,44 +121,44 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
         const pad = `padding-left: calc(${x} * var(--amp) + 2.25rem)`;
         const left = `left: calc(${x} * var(--amp))`;
         if (st.kind === 'event') return (
-          <li class="reveal relative pb-10 last:pb-0" style={pad}>
-            <span class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`} style={left} />
-            <p class="font-mono text-[11px] uppercase tracking-widest text-muted mb-1">{e.year}</p>
-            <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
-            <p class="font-mono text-xs text-muted mb-2">{e.place}</p>
-            <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
+          <li class="relative pb-10 last:pb-0" style={pad}>
+            <span class="traj-dot absolute top-1.5 w-3 h-3 rounded-full" style={`${left}; background:${toneOf(e)}`} />
+            <p class="text-[15px] text-muted">{e.year}</p>
+            <h3 class="text-zinc-50 font-semibold text-lg leading-snug">{e.title}</h3>
+            <p class="text-[15px] text-muted mb-1.5">{e.place}</p>
+            <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
           </li>
         );
         // Start / end of something that spans time: the comet picks the body up at the start
         // and sets it down at the end — the dashed ring marks where it was or will land
         const ended = st.kind === 'end';
         return (
-          <li class="reveal relative pb-10 last:pb-0" style={pad}>
+          <li class="relative pb-10 last:pb-0" style={pad}>
             {ended ? (
-              <span class={`traj-dot absolute top-1 w-3 h-3 rounded-full border border-dashed ${toneOf(e).border}`} style={left} data-range={st.id} data-kind="end" />
+              <span class="traj-dot absolute top-1.5 w-3 h-3 rounded-full border border-dashed" style={`${left}; border-color:${toneOf(e)}`} data-range={st.id} data-kind="end" />
             ) : (
               <>
-                <span class={`ghost absolute top-1 w-3 h-3 rounded-full border border-dashed border-zinc-600 opacity-0 transition-opacity duration-500`} style={left} />
+                <span class="ghost absolute top-1.5 w-3 h-3 rounded-full border border-dashed border-zinc-600 opacity-0 transition-opacity duration-500" style={left} />
                 <span
-                  class={`traj-dot absolute top-1 w-3 h-3 rounded-full shadow-[0_0_14px] ${planet[e.type] ?? 'bg-zinc-500'}`}
-                  style={left}
+                  class="traj-dot absolute top-1.5 w-3 h-3 rounded-full"
+                  style={`${left}; background:${toneOf(e)}`}
                   data-range={st.id}
                   data-kind="start"
-                  data-color={toneOf(e).hex}
+                  data-color={toneOf(e)}
                 />
               </>
             )}
-            <p class="font-mono text-[11px] uppercase tracking-widest text-muted">
-              {ended ? e.until : e.year} <span class="text-faint">· {ended ? 'ended' : 'started'}</span>
+            <p class="text-[15px] text-muted">
+              {ended ? e.until : e.year}, {ended ? 'ended' : 'started'}
             </p>
             {ended ? (
               <>
-                <h3 class="text-zinc-50 font-medium text-lg leading-snug">{e.title}</h3>
-                <p class="font-mono text-xs text-muted mb-2">{e.place} · {e.year} – {e.until}</p>
-                <p class="text-sm text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
+                <h3 class="text-zinc-50 font-semibold text-lg leading-snug">{e.title}</h3>
+                <p class="text-[15px] text-muted mb-1.5">{e.place}, {e.year} to {e.until}</p>
+                <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
               </>
             ) : (
-              <p class="text-sm text-zinc-400">
+              <p class="text-[15px] text-zinc-400">
                 {e.title} <span class="text-faint">{e.until ? `↑ until ${e.until}` : '↑ still going'}</span>
               </p>
             )}
@@ -270,7 +265,6 @@ const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, 
   function makeBody(color: string, size = 3): Body {
     const trail = Array.from({ length: 9 }, (_, i) => make('circle', trails, { r: size * 0.75 * (1 - i / 11), fill: color, opacity: 0 }));
     const el = make('circle', front, { r: size, fill: color, opacity: 0 });
-    el.style.filter = `drop-shadow(0 0 4px ${color})`;
     return {
       el, size, trail, hist: [], mode: 'hidden', p: { x: 0, y: 0 }, v: { x: 0, y: 0 },
       o: { rho: 0, rhoDot: 0, theta: 0, thetaDot: 0, R: 0, omega: 0 }, ring: null, ringAlpha: 0,

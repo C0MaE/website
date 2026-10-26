@@ -3,21 +3,21 @@
     "year": "May 2020",
     "title": "First Line of Code",
     "place": "Home",
-    "description": "Got into programming through Java — starting with a Minecraft server. That rabbit hole never really ended.",
+    "description": "Got into programming through Java, starting with a Minecraft server, and never really stopped.",
     "type": "milestone"
   },
   {
     "year": "Jan 2024",
     "title": "First Open Source Project",
     "place": "GitHub",
-    "description": "Built a fullstack tournament management app in Rust and React — my first real dive into both the language and open source.",
+    "description": "Built a fullstack tournament management app in Rust and React, my first real project in both the language and open source.",
     "type": "milestone"
   },
   {
     "year": "Jul 2024",
     "title": "Junior Developer at BEYONDIT GmbH",
     "place": "Kiel",
-    "description": "Started my first professional role as a developer, working on real-world fullstack projects in a team environment.",
+    "description": "My first job as a developer, working on fullstack projects in a team.",
     "type": "work",
     "ongoing": true
   },
@@ -32,7 +32,7 @@
     "year": "Oct 2025",
     "title": "Physics Student",
     "place": "Christian-Albrechts-Universität Kiel",
-    "description": "Studying physics at CAU Kiel, bridging the gap between scientific thinking and software — simulations, data analysis, and everything in between.",
+    "description": "Studying physics at CAU Kiel, and writing software for simulations and data analysis alongside.",
     "type": "education",
     "ongoing": true
   },
@@ -48,7 +48,7 @@
     "year": "Aug 2026",
     "title": "Student Research Assistant at DAPHNE4NFDI",
     "place": "AG Murphy, CAU Kiel",
-    "description": "Joined the DAPHNE4NFDI consortium, building research data tools for photon and neutron science — like automating IGSN sample registration so lab samples get persistent identifiers.",
+    "description": "Joined the DAPHNE4NFDI consortium, building research data tools for photon and neutron science, such as automating IGSN sample registration so lab samples get persistent identifiers.",
     "type": "work",
     "ongoing": true
   }

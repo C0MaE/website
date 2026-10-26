@@ -83,7 +83,7 @@ export function mountCursor() {
     if (planet > 0.01) {
       const size = (hot ? 3.9 : 3.2) * (1 - 0.3 * squash);
       const glow = g.createRadialGradient(MID, MID, 0, MID, MID, size * 3.2);
-      glow.addColorStop(0, `rgba(167,139,250,${0.45 * planet})`); glow.addColorStop(1, 'rgba(167,139,250,0)');
+      glow.addColorStop(0, `rgba(230,200,143,${0.4 * planet})`); glow.addColorStop(1, 'rgba(230,200,143,0)');
       g.fillStyle = glow; g.beginPath(); g.arc(MID, MID, size * 3.2, 0, Math.PI * 2); g.fill();
       g.globalAlpha = planet; g.fillStyle = '#f4f4f5';
       g.beginPath(); g.arc(MID, MID, size, 0, Math.PI * 2); g.fill();

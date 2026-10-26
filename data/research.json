@@ -8,7 +8,8 @@
     "github": null,
     "note": "Code available on request (HAMSTER is not yet public)",
     "image": "/hamster-orbit.webp",
-    "video": "/hamster-orbit.mp4"
+    "video": "/hamster-orbit.mp4",
+    "caption": "A simulated protoplanetary disk at λ = 1.6 µm, seen at 55° inclination, intensity scaled by r². The camera circles the disk."
   },
   {
     "title": "IGSN Helper",
@@ -18,6 +19,7 @@
     "tags": ["Python", "Ollama", "Pydantic", "pdfplumber", "DataCite", "ORCID / ROR"],
     "github": "https://github.com/C0MaE/igsn_helper",
     "image": "/igsn-flow.svg",
-    "video": null
+    "video": null,
+    "caption": "From a free-text lab submission to draft IGSN records: a local LLM extracts the facts, every value is checked against the source, and a curator reviews the result."
   }
 ]

@@ -1,12 +1,13 @@
 {
   "name": "Jannis Koberg",
+  "headline": "Physics student in Kiel, writing software for simulations and lab data.",
   "typewriterWords": [
     "Physics Student",
     "Research Software Developer",
     "Simulation Builder",
     "Fullstack Developer"
   ],
-  "bio": "Hey! I'm a physics student in Kiel who writes research software, from radiative transfer animations to research data pipelines. Coding since 2020 in Python, C and Rust, and just as at home crafting polished frontends.",
+  "bio": "So far that has meant animating radiative transfer simulations of protoplanetary disks and building tools for research data in photon and neutron science. Right now I'm teaching myself machine learning on Raman spectra. Mostly in Python, C and Rust, programming since 2020.",
   "now": [
     {
       "label": "Studying physics at CAU Kiel"

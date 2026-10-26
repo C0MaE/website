@@ -31,7 +31,7 @@ const ART = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 `.trim().split('\n');
 
-const MONO = 'font-family:"JetBrains Mono",ui-monospace,monospace';
+const MONO = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace';
 const say = (text: string, color = '#a1a1aa') => console.log(`%c${text}`, `${MONO};color:${color}`);
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -44,7 +44,7 @@ function banner() {
   console.log(ART.map(line => `%c${line}`).join('\n'), ...ART.map((_, i) => `${MONO};line-height:1.1;color:${mix(i / (ART.length - 1))}`));
   console.log(
     '%cCoMaE%c  hey there, fellow dev! You found the console.\n%cEverything on this page is open source → https://github.com/C0MaE/website',
-    'font-family:"Instrument Serif",Georgia,serif;font-size:22px;color:#fafafa', `${MONO};color:#d4d4d8`, `${MONO};color:#a1a1aa`,
+    'font-family:"Source Serif 4 Variable",Georgia,serif;font-size:22px;color:#fafafa', `${MONO};color:#d4d4d8`, `${MONO};color:#a1a1aa`,
   );
   const commands: [string, string][] = [
     ['comet()', 'throw a comet into the solar system   · comet(distance AU, speed)'],
@@ -104,7 +104,7 @@ function warp(daysPerSecond = 30) {
   const rate = Math.round(Math.min(Math.max(daysPerSecond, -3650), 3650));
   dispatchEvent(new CustomEvent('comae:warp', { detail: { rate } }));
   if (!rate) say('Back to today.');
-  else say(`⏩ ${Math.abs(rate)} days per second${rate < 0 ? ', backwards' : ''}, for 15 seconds. Then back to today.`, '#c4b5fd');
+  else say(`⏩ ${Math.abs(rate)} days per second${rate < 0 ? ', backwards' : ''}, for 15 seconds. Then back to today.`, '#e6c88f');
 }
 
 function planets() {
@@ -130,10 +130,10 @@ function hire() {
   if (!contact) { location.href = '/#contact'; return; }
   contact.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' });
   document.querySelector<HTMLElement>('a.mail-link')?.animate(
-    [{ boxShadow: '0 0 0 0 rgba(167,139,250,0.75)' }, { boxShadow: '0 0 0 16px rgba(167,139,250,0)' }],
+    [{ boxShadow: '0 0 0 0 rgba(217,178,111,0.75)' }, { boxShadow: '0 0 0 16px rgba(217,178,111,0)' }],
     { duration: 1100, iterations: 3, delay: 700, easing: 'ease-out' },
   );
-  say('Not actively looking, but always up for interesting projects. Say hi!', '#c4b5fd');
+  say('Not actively looking, but always up for interesting projects. Say hi!', '#e6c88f');
 }
 
 // The easter egg: the probe takes a tour of the page, swinging past every heading
@@ -210,7 +210,7 @@ function launch() {
       // The camera follows the probe down the page
       const target = p.y - innerHeight * 0.45;
       scrollTo({ top: scrollY + (target - scrollY) * (1 - Math.exp(-dt / 0.22)), behavior: 'instant' as ScrollBehavior });
-      if (s >= total) { landed = t; say('Tour complete. The probe is parked right next to the email button, in case you want to say hi.', '#fcd34d'); dock!.animate([{ boxShadow: '0 0 0 0 rgba(252,211,77,0.8)' }, { boxShadow: '0 0 0 18px rgba(252,211,77,0)' }], { duration: 900, iterations: 2 }); }
+      if (s >= total) { landed = t; say('Tour complete. The probe is parked right next to the email link, in case you want to say hi.', '#fcd34d'); dock!.animate([{ boxShadow: '0 0 0 0 rgba(252,211,77,0.8)' }, { boxShadow: '0 0 0 18px rgba(252,211,77,0)' }], { duration: 900, iterations: 2 }); }
     }
     const fade = aborted ? Math.max(0, 1 - (t - aborted) / 600) : 1;
     ctx.clearRect(0, 0, innerWidth, innerHeight);
