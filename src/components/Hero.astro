@@ -67,7 +67,6 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
   const tip = document.getElementById('planet-tip')!;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const wide = matchMedia('(min-width: 1024px)'); // system beside the text rather than a faint backdrop
-  const fine = matchMedia('(pointer: fine)');      // comets and eruptions need a mouse or pen
 
   const LOOK: Record<string, { color: string; size: number }> = {
     Mercury: { color: '#a8a29e', size: 2 },
@@ -98,7 +97,6 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
   const LIGHT_SPEEDUP = 1700, PULSE_EVERY = 9000; // a sunlight front every 9 s, Neptune reached after ~9 s
   const CME_AU_PER_SECOND = 0.9, CME_HALF_WIDTH = 0.5; // eruption front speed on screen, cone half-angle (rad)
   const DAY_MS = 86400000, KM_PER_AU = 149_597_871;
-  const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const SERIF = '"Source Serif 4 Variable", Georgia, serif';
 
   const period = (a: number) => 365.25 * Math.pow(a, 1.5); // days, Kepler's third law
@@ -339,24 +337,6 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
 
     for (const f of comets) drawComet(f);
     if (aim) drawAim();
-
-    // Caption with the date being shown; counts up to today during the intro
-    if (wide.matches) {
-      const y = cy + R_OUT * R * TILT + 34;
-      ctx.textAlign = 'center';
-      ctx.font = `15px ${SERIF}`;
-      ctx.fillStyle = '#a1a1aa';
-      const day = dateFmt.format(shownMs);
-      ctx.fillText(offsetDays ? `The solar system on ${day}, time warp` : intro < 1 ? `The solar system on ${day}` : `The solar system today, ${day}`, cx, y);
-      ctx.font = `italic 14px ${SERIF}`;
-      ctx.fillStyle = '#7c7c85';
-      const newest = comets.filter(f => !f.end).at(-1);
-      ctx.fillText(warpLeft > 0 ? `${Math.abs(warpRate)} days per second${warpRate < 0 ? ', backwards' : ''}` : offsetDays ? 'Back to today'
-        : newest ? `Comet in time-lapse, 1 s ≈ ${Math.round(newest.rate)} days` : 'Real positions, distances on a log scale', cx, y + 20);
-      if (fine.matches) {
-        ctx.fillText('Drag to throw a comet, click the Sun', cx, y + 39);
-      }
-    }
   }
 
   function drawComet(f: Flying) {
@@ -536,6 +516,6 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
   start = performance.now();
   if (reduced) {
     draw(start);
-    document.fonts.ready.then(() => draw(performance.now())); // redraw the caption in the right font
+    document.fonts.ready.then(() => draw(performance.now())); // redraw aurora notes in the right font
   } else wake();
 </script>
