@@ -64,10 +64,6 @@
   .page-container {
     @apply w-full mx-auto max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-[96rem];
   }
-  /* Elsewhere the pointer is a planet with a moon (lib/cursor.ts) */
-  .space-cursor, .space-cursor * { cursor: none; }
-  /* In the hero the mouse pointer becomes a black hole (lib/blackHole.ts) */
-  .black-hole-cursor, .black-hole-cursor * { cursor: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

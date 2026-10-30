@@ -8,11 +8,11 @@ interface HeroData {
 }
 
 const { headline, bio, now = [] } = await fetchData<HeroData>('hero.json');
+// Links to other sites open in a new tab, links within the page don't
+const external = (href?: string) => (href && !href.startsWith('#') ? { target: '_blank', rel: 'noopener noreferrer' } : {});
 ---
 
 <section id="hero" class="relative overflow-hidden px-5 pt-32 pb-20 md:pt-40 md:pb-28">
-  <!-- Background stars, gravitationally lensed around the mouse pointer -->
-  <canvas id="sky" class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true"></canvas>
   <!-- The solar system as it is right now: faint backdrop behind the text on phones and tablets, beside it on desktop -->
   <div class="absolute inset-x-0 top-8 h-80 opacity-30 lg:opacity-100 lg:inset-0 lg:h-auto lg:px-5 pointer-events-none" aria-hidden="true">
     <!-- Aligned with the content column so every planet stays on screen, however wide the window -->
@@ -38,13 +38,16 @@ const { headline, bio, now = [] } = await fetchData<HeroData>('hero.json');
     </p>
 
     {now.length > 0 && (
-      <div class="max-w-xl grid grid-cols-[3.5rem_1fr] gap-x-4">
-        <p class="italic text-accent">Now</p>
-        <ul class="space-y-1 text-zinc-300">
+      <div class="max-w-xl">
+        <p class="text-[15px] text-muted mb-2">Now</p>
+        <ul class="space-y-1.5 text-zinc-300">
           {now.map(item => (
-            <li>
+            <li class="flex items-baseline gap-3">
+              <span class="w-1.5 h-1.5 shrink-0 rounded-full bg-accent translate-y-[-2px]" aria-hidden="true" />
               {item.href ? (
-                <a href={item.href} {...(item.href.startsWith('#') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} class="link">{item.label}</a>
+                <a href={item.href} {...external(item.href)} class="hover:text-zinc-50 transition-colors">
+                  {item.label} <span class="text-muted" aria-hidden="true">{item.href.startsWith('#') ? '↓' : '↗'}</span>
+                </a>
               ) : item.label}
             </li>
           ))}
@@ -57,12 +60,8 @@ const { headline, bio, now = [] } = await fetchData<HeroData>('hero.json');
 <script>
   import { PLANETS, positionAt, orbitAt, julianDate, LIGHT_SECONDS_PER_AU } from '../lib/planets';
   import { advance, preview, circularSpeed, K2, type Comet, type Outcome } from '../lib/comet';
-  import { mountLensedSky } from '../lib/lensing';
-  import { mountBlackHole } from '../lib/blackHole';
 
   const section = document.getElementById('hero')!;
-  mountLensedSky(document.getElementById('sky') as HTMLCanvasElement, section);
-  mountBlackHole(section);
   const canvas = document.getElementById('orbits') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
   const tip = document.getElementById('planet-tip')!;
@@ -464,10 +463,9 @@ const { headline, bio, now = [] } = await fetchData<HeroData>('hero.json');
     for (const s of shown) { const d = Math.hypot(s.x - x, s.y - y); if (d < bestD) { bestD = d; best = s.name; } }
     if (best !== hovered) showTip(best);
     if (playable(e)) {
-      // With the black-hole pointer, clickable things just brighten its ring; otherwise use normal cursors
+      // A hand over planets and the Sun, the normal arrow everywhere else
       const clickable = !overText(e) && (!!best || onSun(x, y));
-      section.dataset.hot = clickable ? '1' : '0';
-      section.style.cursor = section.classList.contains('black-hole-cursor') ? '' : overText(e) ? '' : clickable ? 'pointer' : 'crosshair';
+      section.style.cursor = clickable ? 'pointer' : '';
     }
     if (reduced) draw(performance.now());
   }
