@@ -8,633 +8,140 @@ interface TimelineEvent {
   place: string;
   description: string;
   type: 'education' | 'work' | 'milestone' | 'graduation';
-  /** Still going on: the comet picks it up where it started and carries it to "now" */
+  /** Still going on: the bar runs up to today */
   ongoing?: boolean;
-  /** For something that has ended ("Mar 2027"): the comet drops it off there */
+  /** For something that has ended ("Mar 2027") */
   until?: string;
 }
 
 const events = await fetchData<TimelineEvent[]>('timeline.json');
 
-// One colour per kind of station: dots glow softly in it, moons and pulses use it too
+// One colour per kind of station, as glowing bars and dots
 const tone: Record<string, string> = {
   education: '#a78bfa',
   work: '#34d399',
   milestone: '#a1a1aa',
   graduation: '#fbbf24',
 };
-const toneOf = (e: TimelineEvent) => tone[e.type] ?? tone.milestone;
-const glow = (e: TimelineEvent) => `background:${toneOf(e)}; box-shadow:0 0 14px ${toneOf(e)}80`;
+const legend: Record<string, string> = { education: 'Study', work: 'Work', graduation: 'Graduation', milestone: 'Milestone' };
+const colorOf = (e: TimelineEvent) => tone[e.type] ?? tone.milestone;
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-// "Jul 2024" → 2024.5; undated ("Present") sorts after everything
-const dateValue = (label: string) => {
-  const year = label.match(/\d{4}/)?.[0];
-  if (!year) return Infinity;
+// "Jul 2024" → 2024.5, the start of that month
+const at = (label: string) => {
+  const year = Number(label.match(/\d{4}/)![0]);
   const month = MONTHS.indexOf(label.trim().slice(0, 3).toLowerCase());
-  return Number(year) + (month >= 0 ? month / 12 : 0);
+  return year + (month >= 0 ? month / 12 : 0);
 };
+const today = new Date();
+const now = today.getFullYear() + (today.getMonth() + (today.getDate() - 1) / 31) / 12;
 
-const hasDate = (e: TimelineEvent) => /\d{4}/.test(e.year);
-const isCurrent = (e: TimelineEvent) => !e.until && (e.ongoing || !hasDate(e));
-const isRange = (e: TimelineEvent) => hasDate(e) && (!!e.until || !!e.ongoing);
+// Linear time axis from just before the first event's year to a little past today
+const dated = events.filter(e => /\d{4}/.test(e.year));
+const firstYear = Math.floor(Math.min(...dated.map(e => at(e.year))));
+const first = firstYear - 0.2, last = now + 0.35;
+const x = (t: number) => (((t - first) / (last - first)) * 100).toFixed(2);
+const years = Array.from({ length: Math.floor(last) - firstYear + 1 }, (_, i) => firstYear + i);
 
-// "Now" lists everything still going on, most recently started first (undated ones on top)
-const current = events.filter(isCurrent).sort((a, b) => dateValue(b.year) - dateValue(a.year));
+// Everything with a duration is a bar (newest on top), single events are dots on the bottom row
+const bars = dated
+  .filter(e => e.until || e.ongoing)
+  .map(e => ({ e, from: at(e.year), to: e.until ? Math.min(at(e.until) + 1 / 12, now) : now }))
+  .sort((a, b) => b.from - a.from);
+const dots = dated.filter(e => !e.until && !e.ongoing).sort((a, b) => at(a.year) - at(b.year));
+const kinds = Object.keys(legend).filter(k => dated.some(e => e.type === k));
 
-// The path, newest first: plain events, plus a start marker for every range and an end marker for ranges that ended
-type Station = { kind: 'event' | 'start' | 'end'; e: TimelineEvent; id: number; date: number };
-const stations: Station[] = events.flatMap((e, id): Station[] => {
-  if (!hasDate(e)) return [];
-  if (!isRange(e)) return [{ kind: 'event', e, id, date: dateValue(e.year) }];
-  const start: Station = { kind: 'start', e, id, date: dateValue(e.year) };
-  return e.until ? [start, { kind: 'end', e, id, date: dateValue(e.until) }] : [start];
-}).sort((a, b) => b.date - a.date);
-
-// Each row is pushed sideways along an arc (right → left → right), so the curve drawn
-// through the dots reads as a trajectory rising towards "now"
-const rows = (current.length ? 1 : 0) + stations.length;
-const offsetAt = (i: number) => {
-  const t = rows > 1 ? i / (rows - 1) : 0;
-  return ((1 - Math.sin(Math.PI * t)) * (1 - 0.45 * t)).toFixed(3);
-};
-const stationOffset = current.length ? 1 : 0;
-
-// One moon per current thing; dated ones are the ranges the comet carries up (matched by index into events)
-const moons = current.map(e => ({ range: hasDate(e) ? events.indexOf(e) : null, color: toneOf(e) }));
+// The list below the plot: newest first
+const when = (e: TimelineEvent) => (e.until ? `${e.year} – ${e.until}` : e.ongoing ? `since ${e.year}` : e.year);
+const list = [...events].sort((a, b) => (/\d{4}/.test(b.year) ? at(b.year) : Infinity) - (/\d{4}/.test(a.year) ? at(a.year) : Infinity));
 ---
 
 <section id="timeline" class="py-14 md:py-20 px-5">
   <div class="page-container">
     <SectionHeader title="Journey" />
 
-    <ol id="trajectory" class="relative [--amp:1.75rem] md:[--amp:min(34vw,32rem)]" data-moons={JSON.stringify(moons)}>
-      <svg id="traj-svg" class="absolute inset-0 w-full h-full overflow-visible pointer-events-none" aria-hidden="true">
-        <defs>
-          <linearGradient id="traj-gradient" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stop-color="#3f3f46" stop-opacity="0.4" />
-            <stop offset="1" stop-color="#a78bfa" stop-opacity="0.9" />
-          </linearGradient>
-          <!-- Lit from the upper left, like a sphere -->
-          <radialGradient id="now-glow" cx="0.5" cy="0.5" fx="0.32" fy="0.28" r="0.6">
-            <stop offset="0" stop-color="#ede9fe" />
-            <stop offset="0.35" stop-color="#a78bfa" />
-            <stop offset="0.8" stop-color="#6d28d9" />
-            <stop offset="1" stop-color="#3b0764" />
-          </radialGradient>
-        </defs>
-        <path id="traj-path" d="" fill="none" stroke="url(#traj-gradient)" stroke-width="1.5" stroke-dasharray="4 6" />
-        <!-- Depth order: trails, moons behind the planet, the planet, moons in front, comet, flashes -->
-        <g id="layer-trails"></g>
-        <g id="layer-back"></g>
-        <circle id="now-halo" r="17" fill="#8b5cf6" opacity="0" style="filter: blur(5px)" />
-        <circle id="now-planet" r="9" fill="url(#now-glow)" opacity="0" />
-        <g id="layer-front"></g>
-        <g id="layer-fx"></g>
-      </svg>
+    <!-- The plot repeats what the list below says, so screen readers get the list only -->
+    <div class="overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0" aria-hidden="true" data-plot-scroll>
+      <div class="min-w-[680px]">
+        <ul class="flex justify-end gap-5 text-sm text-muted mb-6">
+          {kinds.map(k => (
+            <li class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" style={`background:${tone[k]}`} />
+              {legend[k]}
+            </li>
+          ))}
+        </ul>
 
-      {current.length > 0 && (
-        <li class="relative pb-14" style={`padding-left: calc(${offsetAt(0)} * var(--amp) + 3.5rem)`}>
-          <!-- Anchor for the "now" planet, which is drawn in the SVG so moons can pass behind and in front of it -->
-          <span class="traj-dot now-dot absolute top-0 w-5 h-5 -ml-1 rounded-full opacity-0" style={`left: calc(${offsetAt(0)} * var(--amp))`} />
+        <div class="relative pt-8">
+          {years.map(y => (
+            <span class="absolute top-8 bottom-0 w-px bg-zinc-800/70" style={`left:${x(y)}%`} />
+          ))}
+          <span class="absolute top-8 bottom-0 border-l border-dashed border-zinc-500" style={`left:${x(now)}%`} />
+          <span class="absolute top-0 -translate-x-1/2 text-sm italic text-zinc-400" style={`left:${x(now)}%`}>today</span>
 
-          <p class="text-[#a78bfa] mb-3">Now</p>
-          <div class="grid gap-6">
-            {current.map(e => (
-              <article>
-                <h3 class="flex items-center gap-2.5 text-zinc-50 font-semibold text-lg leading-snug">
-                  <span class="w-1.5 h-1.5 shrink-0 rounded-full" style={`background:${toneOf(e)}`} />
+          <ol class="relative pt-3">
+            {bars.map(({ e, from, to }) => (
+              <li class="relative h-10">
+                <span class="absolute top-1/2 -translate-y-1/2 pr-3 whitespace-nowrap text-[15px] text-zinc-200" style={`right:${(100 - Number(x(from))).toFixed(2)}%`}>
                   {e.title}
-                </h3>
-                <p class="text-[15px] text-muted mb-1.5 pl-4">
-                  {e.place}{hasDate(e) && <span>, since {e.year}</span>}
-                </p>
-                <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md pl-4">{e.description}</p>
-              </article>
+                </span>
+                <span
+                  class="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full"
+                  style={`left:${x(from)}%; width:${(Number(x(to)) - Number(x(from))).toFixed(2)}%; background:${colorOf(e)}; box-shadow:0 0 10px ${colorOf(e)}80`}
+                />
+                {e.ongoing && (
+                  <span
+                    class="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-r-full"
+                    style={`left:${x(now)}%; width:${(Number(x(last)) - Number(x(now))).toFixed(2)}%; background:linear-gradient(to right, ${colorOf(e)}, transparent)`}
+                  />
+                )}
+              </li>
             ))}
+            <li class="relative h-20">
+              {dots.map((e, i) => {
+                // Alternate rows so neighbouring labels don't collide; labels near today go left of their dot
+                const left = Number(x(at(e.year))) > 60;
+                return (
+                  <span
+                    class={`absolute flex items-center gap-2.5 whitespace-nowrap ${left ? 'flex-row-reverse' : ''}`}
+                    style={`${left ? `right:${(100 - Number(x(at(e.year)))).toFixed(2)}%` : `left:${x(at(e.year))}%`}; top:${i % 2 ? 2.6 : 0.9}rem`}
+                  >
+                    <span class={`w-3 h-3 shrink-0 rounded-full ${left ? '-mr-1.5' : '-ml-1.5'}`} style={`background:${colorOf(e)}; box-shadow:0 0 12px ${colorOf(e)}80`} />
+                    <span class="text-[15px] text-zinc-300">{e.title}</span>
+                  </span>
+                );
+              })}
+            </li>
+          </ol>
+        </div>
+
+        <div class="relative h-9 border-t border-zinc-600">
+          {years.map(y => (
+            <span class="absolute top-0 flex flex-col items-center -translate-x-1/2" style={`left:${x(y)}%`}>
+              <span class="w-px h-1.5 bg-zinc-600" />
+              <span class="mt-1 text-sm text-muted tabular-nums">{y}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <ol class="mt-14 grid lg:grid-cols-2 gap-x-16 gap-y-8">
+      {list.map(e => (
+        <li class="grid grid-cols-[0.75rem_1fr] gap-x-3">
+          <span class="w-2 h-2 mt-[0.6rem] rounded-full" style={`background:${colorOf(e)}`} />
+          <div>
+            <h3 class="font-semibold leading-snug text-zinc-50">{e.title}</h3>
+            <p class="text-[15px] text-muted mb-1">{e.place} · {when(e)}</p>
+            <p class="text-[15px] leading-relaxed text-zinc-400 max-w-md">{e.description}</p>
           </div>
         </li>
-      )}
-
-      {stations.map((st, i) => {
-        const { e } = st;
-        const x = offsetAt(i + stationOffset);
-        const pad = `padding-left: calc(${x} * var(--amp) + 2.25rem)`;
-        const left = `left: calc(${x} * var(--amp))`;
-        if (st.kind === 'event') return (
-          <li class="relative pb-10 last:pb-0" style={pad}>
-            <span class="traj-dot absolute top-1.5 w-3 h-3 rounded-full" style={`${left}; ${glow(e)}`} />
-            <p class="text-[15px] text-muted">{e.year}</p>
-            <h3 class="text-zinc-50 font-semibold text-lg leading-snug">{e.title}</h3>
-            <p class="text-[15px] text-muted mb-1.5">{e.place}</p>
-            <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
-          </li>
-        );
-        // Start / end of something that spans time: the comet picks the body up at the start
-        // and sets it down at the end — the dashed ring marks where it was or will land
-        const ended = st.kind === 'end';
-        return (
-          <li class="relative pb-10 last:pb-0" style={pad}>
-            {ended ? (
-              <span class="traj-dot absolute top-1.5 w-3 h-3 rounded-full border border-dashed" style={`${left}; border-color:${toneOf(e)}`} data-range={st.id} data-kind="end" />
-            ) : (
-              <>
-                <span class="ghost absolute top-1.5 w-3 h-3 rounded-full border border-dashed border-zinc-600 opacity-0 transition-opacity duration-500" style={left} />
-                <span
-                  class="traj-dot absolute top-1.5 w-3 h-3 rounded-full"
-                  style={`${left}; ${glow(e)}`}
-                  data-range={st.id}
-                  data-kind="start"
-                  data-color={toneOf(e)}
-                />
-              </>
-            )}
-            <p class="text-[15px] text-muted">
-              {ended ? e.until : e.year}, {ended ? 'ended' : 'started'}
-            </p>
-            {ended ? (
-              <>
-                <h3 class="text-zinc-50 font-semibold text-lg leading-snug">{e.title}</h3>
-                <p class="text-[15px] text-muted mb-1.5">{e.place}, {e.year} to {e.until}</p>
-                <p class="text-[15px] text-zinc-400 leading-relaxed max-w-md">{e.description}</p>
-              </>
-            ) : (
-              <p class="text-[15px] text-zinc-400">
-                {e.title} <span class="text-faint">{e.until ? `↑ until ${e.until}` : '↑ still going'}</span>
-              </p>
-            )}
-          </li>
-        );
-      })}
+      ))}
     </ol>
   </div>
 </section>
 
 <script>
-  const SVG_NS = 'http://www.w3.org/2000/svg';
-  const list = document.getElementById('trajectory')!;
-  const path = document.getElementById('traj-path') as unknown as SVGPathElement;
-  const planetEl = document.getElementById('now-planet') as unknown as SVGCircleElement;
-  const haloEl = document.getElementById('now-halo') as unknown as SVGCircleElement;
-  const layer = (id: string) => document.getElementById(id) as unknown as SVGGElement;
-  const trails = layer('layer-trails'), back = layer('layer-back'), front = layer('layer-front'), fx = layer('layer-fx');
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const moonSpecs: { range: number | null; color: string }[] = JSON.parse(list.dataset.moons ?? '[]');
-
-  // --- Tuning -------------------------------------------------------------------------------
-  const TILT = 0.5;                                        // orbit plane seen from slightly above
-  const SCALE = matchMedia('(max-width: 767px)').matches ? 0.6 : 1;
-  const ACCEL = 160, DECEL = 50;                           // px/s² — gentle start, long soft braking
-  const ENTRY_SPEED = 135;                                 // px/s when the probe leaves the path
-  const LAG = 0.17;                                        // s behind the probe for each towed body
-  const TOW_K = 36;                                        // towing spring (critically damped)
-  const ORBIT_K = 3.2, SPIN_K = 1.3;                       // how softly bodies settle onto an orbit
-  const PLANET_R = 9;
-
-  // Moons: radius grows outward and the period follows Kepler's third law (T ∝ R^1.5)
-  const R0 = 22 * SCALE, T0 = 7;
-  const orbitFor = (k: number) => {
-    const R = (22 + k * 9) * SCALE;
-    return { R, period: T0 * (R / R0) ** 1.5 };
-  };
-  const PROBE_R = orbitFor(moonSpecs.length).R + 8 * SCALE;
-  const PROBE_PERIOD = 4.2;                                // s per lap — the probe is powered, so it laps quicker than a moon
-  const HANDOVER = PROBE_R * 3.4;                          // leave the path this far (along it) before the planet
-
-  type Vec = { x: number; y: number };
-  // State in the orbit plane around "now": polar position and its rates
-  type Orbit = { rho: number; rhoDot: number; theta: number; thetaDot: number; R: number; omega: number };
-  type Body = {
-    el: SVGCircleElement; size: number; trail: SVGCircleElement[]; hist: Vec[];
-    mode: 'hidden' | 'towed' | 'landing' | 'orbit';
-    p: Vec; v: Vec; o: Orbit; ring: SVGEllipseElement | null; ringAlpha: number;
-  };
-  type Range = { id: number; dot: HTMLElement; ghost: HTMLElement | null; startAt: number; endAt: number | null; end: Vec | null; body: Body; order: number; moon: number };
-
-  let length = 0;
-  let now: Vec = { x: 0, y: 0 };
-  let ranges: Range[] = [];
-  const moons: Body[] = [];
-  const pulses: { el: SVGCircleElement; t0: number }[] = [];
-
-  // --- SVG helpers --------------------------------------------------------------------------
-  const make = <K extends keyof SVGElementTagNameMap>(tag: K, parent: SVGGElement, attrs: Record<string, string | number>) => {
-    const el = document.createElementNS(SVG_NS, tag);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, `${v}`);
-    parent.appendChild(el);
-    return el;
-  };
-  const put = (c: SVGCircleElement, p: Vec, opacity = 1, r?: number) => {
-    c.setAttribute('cx', p.x.toFixed(2));
-    c.setAttribute('cy', p.y.toFixed(2));
-    c.setAttribute('opacity', opacity.toFixed(3));
-    if (r !== undefined) c.setAttribute('r', r.toFixed(2));
-  };
-  // Plain {x, y}: a DOMPoint's coordinates are getters and get lost when the point is copied with {...p}
-  const at = (s: number): Vec => {
-    const q = path.getPointAtLength(Math.min(Math.max(s, 0), length));
-    return { x: q.x, y: q.y };
-  };
-
-  // --- Orbit maths --------------------------------------------------------------------------
-  const fromOrbit = (o: Orbit): Vec => ({ x: now.x + Math.cos(o.theta) * o.rho, y: now.y + Math.sin(o.theta) * o.rho * TILT });
-  // Screen position + velocity → polar state in the orbit plane (keeps the motion continuous)
-  function toOrbit(p: Vec, v: Vec, R: number, period: number): Orbit {
-    const x = p.x - now.x, z = (p.y - now.y) / TILT;
-    const vx = v.x, vz = v.y / TILT;
-    const rho = Math.max(Math.hypot(x, z), 1);
-    const thetaDot = (x * vz - z * vx) / (rho * rho);
-    const sgn = Math.sign(thetaDot) || 1;
-    return { rho, rhoDot: (x * vx + z * vz) / rho, theta: Math.atan2(z, x), thetaDot, R, omega: (sgn * 2 * Math.PI) / period };
-  }
-  // Radius settles critically damped (no bounce), angular speed eases towards its Kepler value
-  function stepOrbit(o: Orbit, dt: number) {
-    o.rhoDot += (ORBIT_K * (o.R - o.rho) - 2 * Math.sqrt(ORBIT_K) * o.rhoDot) * dt;
-    o.rho = Math.max(o.rho + o.rhoDot * dt, 0);
-    o.thetaDot += SPIN_K * (o.omega - o.thetaDot) * dt;
-    o.theta += o.thetaDot * dt;
-  }
-  function stepTow(b: Body, target: Vec, dt: number) {
-    const damp = 2 * Math.sqrt(TOW_K);
-    b.v.x += (TOW_K * (target.x - b.p.x) - damp * b.v.x) * dt;
-    b.v.y += (TOW_K * (target.y - b.p.y) - damp * b.v.y) * dt;
-    b.p.x += b.v.x * dt;
-    b.p.y += b.v.y * dt;
-  }
-
-  // --- Bodies -------------------------------------------------------------------------------
-  function makeBody(color: string, size = 3): Body {
-    const trail = Array.from({ length: 9 }, (_, i) => make('circle', trails, { r: size * 0.75 * (1 - i / 11), fill: color, opacity: 0 }));
-    const el = make('circle', front, { r: size, fill: color, opacity: 0 });
-    el.style.filter = `drop-shadow(0 0 4px ${color})`;
-    return {
-      el, size, trail, hist: [], mode: 'hidden', p: { x: 0, y: 0 }, v: { x: 0, y: 0 },
-      o: { rho: 0, rhoDot: 0, theta: 0, thetaDot: 0, R: 0, omega: 0 }, ring: null, ringAlpha: 0,
-    };
-  }
-
-  moonSpecs.forEach((spec, k) => {
-    const body = makeBody(spec.color);
-    const { R, period } = orbitFor(k);
-    const omega = (2 * Math.PI) / period;
-    body.o = { rho: R, rhoDot: 0, theta: k * 2.3, thetaDot: omega, R, omega };
-    body.ring = make('ellipse', trails, { rx: R, ry: R * TILT, fill: 'none', stroke: spec.color, 'stroke-width': 0.6, opacity: 0 });
-    // Undated things have always been here; everything with a start date arrives with the probe
-    if (spec.range === null || reduced) { body.mode = 'orbit'; body.ringAlpha = 1; }
-    moons.push(body);
-  });
-
-  const probe = makeBody('#fde68a', 3.5);
-  probe.el.style.filter = 'drop-shadow(0 0 6px #fbbf24)';
-  probe.trail.forEach((c) => c.setAttribute('fill', '#fbbf24'));
-
-  // --- Layout -------------------------------------------------------------------------------
-  // offsetLeft/offsetTop ignore transforms, so the reveal animation doesn't skew the measurement
-  const centre = (dot: HTMLElement): Vec => {
-    const li = dot.parentElement!;
-    return { x: li.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2, y: li.offsetTop + dot.offsetTop + dot.offsetHeight / 2 };
-  };
-  const lengthAt = (p: Vec) => {
-    let best = 0, bestDist = Infinity;
-    for (let s = 0; s <= length; s += 2) {
-      const q = path.getPointAtLength(s);
-      const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
-      if (d < bestDist) { bestDist = d; best = s; }
-    }
-    return best;
-  };
-
-  // Centripetal Catmull-Rom through the points, as cubic Béziers. Unlike the uniform variant it
-  // stays kink-free when short rows (the "started" markers) sit next to tall ones.
-  function smoothPath(pts: Vec[]) {
-    const dist = (a: Vec, b: Vec) => Math.hypot(b.x - a.x, b.y - a.y) ** 0.5;
-    let d = `M ${pts[0].x} ${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p1 = pts[i], p2 = pts[i + 1];
-      const p0 = pts[i - 1] ?? { x: 2 * p1.x - p2.x, y: 2 * p1.y - p2.y };
-      const p3 = pts[i + 2] ?? { x: 2 * p2.x - p1.x, y: 2 * p2.y - p1.y };
-      const d1 = dist(p0, p1), d2 = dist(p1, p2), d3 = dist(p2, p3);
-      const c = (a: number, b: number, m: number, da: number, db: number) =>
-        (da * da * b - db * db * a + (2 * da * da + 3 * da * db + db * db) * m) / (3 * da * (da + db));
-      const c1 = { x: c(p0.x, p2.x, p1.x, d1, d2), y: c(p0.y, p2.y, p1.y, d1, d2) };
-      const c2 = { x: c(p3.x, p1.x, p2.x, d3, d2), y: c(p3.y, p1.y, p2.y, d3, d2) };
-      d += ` C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
-    }
-    return d;
-  }
-
-  // The trajectory runs through the dot centres, oldest first so the probe climbs
-  function layout() {
-    const dots = [...list.querySelectorAll<HTMLElement>('.traj-dot')].reverse();
-    const pts = dots.map(centre);
-    if (pts.length < 2) return;
-    path.setAttribute('d', smoothPath(pts));
-    length = path.getTotalLength();
-    now = pts[pts.length - 1];
-    put(planetEl, now);
-    put(haloEl, now, 0.22);
-    for (const m of moons) m.ring?.setAttribute('cx', `${now.x}`), m.ring?.setAttribute('cy', `${now.y}`);
-
-    const previous = new Map(ranges.map((r) => [r.id, r]));
-    const found = new Map<number, Range>();
-    for (const dot of dots.filter((el) => el.dataset.range !== undefined)) {
-      const id = Number(dot.dataset.range);
-      const moon = moonSpecs.findIndex((m) => m.range === id);
-      const range = found.get(id) ?? previous.get(id) ?? {
-        id, dot, ghost: null, startAt: 0, endAt: null, end: null, order: 0, moon,
-        body: moons[moon] ?? makeBody(dot.dataset.color ?? '#a1a1aa'),
-      };
-      if (dot.dataset.kind === 'end') { range.endAt = lengthAt(centre(dot)); range.end = centre(dot); }
-      else { range.dot = dot; range.ghost = dot.parentElement!.querySelector('.ghost'); range.startAt = lengthAt(centre(dot)); }
-      found.set(id, range);
-    }
-    ranges = [...found.values()];
-    if (reduced) settle();
-  }
-
-  // Static end state for reduced motion: everything already where it belongs
-  function settle() {
-    for (const r of ranges) {
-      r.dot.style.opacity = '0';
-      if (r.ghost) r.ghost.style.opacity = '1';
-      if (r.end) { r.body.mode = 'landing'; r.body.p = { ...r.end }; }
-    }
-    for (const m of moons) m.p = fromOrbit(m.o);
-    renderBodies();
-  }
-
-  // --- Mission ------------------------------------------------------------------------------
-  // flying:   the probe climbs the path, picking up whatever started along the way
-  // orbiting: it curves into a lap around "now", setting each carried body onto its own orbit
-  // landing:  it spirals down onto the planet and is gone
-  let phase: 'idle' | 'waiting' | 'flying' | 'transfer' | 'orbiting' | 'landing' | 'done' = 'idle';
-  let launchAt = 0, s = 0, speed = 0, lap = 0, towed = 0, sgn = 1;
-  // Breadcrumbs of the probe's own track; towed bodies follow these, so there is no seam
-  // between following the path and following the orbit
-  let crumbs: { t: number; x: number; y: number; s: number }[] = [];
-
-  const cruise = () => Math.min(Math.max(length / 7, 150), 230);
-
-  // --- Transfer: a smooth arc from the path onto the orbit --------------------------------
-  // A cubic Hermite curve that starts with the probe's exact position and velocity on the path and ends
-  // with the exact position and velocity of the orbit, so neither direction nor speed ever jumps.
-  type Transfer = { p0: Vec; v0: Vec; p1: Vec; v1: Vec; T: number; theta: number; sgn: number; start: number };
-  let transfer: Transfer | null = null;
-
-  function hermite(tr: Transfer, u: number) {
-    const u2 = u * u, u3 = u2 * u;
-    const a = 2 * u3 - 3 * u2 + 1, b = u3 - 2 * u2 + u, c = -2 * u3 + 3 * u2, d = u3 - u2;
-    const da = 6 * u2 - 6 * u, db = 3 * u2 - 4 * u + 1, dc = -6 * u2 + 6 * u, dd = 3 * u2 - 2 * u;
-    const pos = (k: 'x' | 'y') => a * tr.p0[k] + b * tr.T * tr.v0[k] + c * tr.p1[k] + d * tr.T * tr.v1[k];
-    const vel = (k: 'x' | 'y') => (da * tr.p0[k] + db * tr.T * tr.v0[k] + dc * tr.p1[k] + dd * tr.T * tr.v1[k]) / tr.T;
-    return { p: { x: pos('x'), y: pos('y') }, v: { x: vel('x'), y: vel('y') } };
-  }
-
-  // Try every entry point on the orbit (both directions) and take the gentlest arc: the least total turning
-  // that stays well clear of the planet. Joining at a shallow angle is what makes it look like a real insertion.
-  function planTransfer(p0: Vec, v0: Vec, time: number): Transfer | null {
-    const omega = (2 * Math.PI) / PROBE_PERIOD;
-    const unit = (v: Vec) => { const l = Math.hypot(v.x, v.y) || 1; return { x: v.x / l, y: v.y / l }; };
-    const angle = (a: Vec, b: Vec) => { const ua = unit(a), ub = unit(b); return Math.acos(Math.max(-1, Math.min(1, ua.x * ub.x + ua.y * ub.y))); };
-    const speed0 = Math.hypot(v0.x, v0.y);
-    let best: Transfer | null = null, bestScore = Infinity;
-    for (const sg of [1, -1]) {
-      for (let i = 0; i < 180; i++) {
-        const theta = (i / 180) * 2 * Math.PI;
-        const p1 = { x: now.x + Math.cos(theta) * PROBE_R, y: now.y + Math.sin(theta) * PROBE_R * TILT };
-        const v1 = { x: -sg * omega * PROBE_R * Math.sin(theta), y: sg * omega * PROBE_R * TILT * Math.cos(theta) };
-        const chord = { x: p1.x - p0.x, y: p1.y - p0.y };
-        const len = Math.hypot(chord.x, chord.y);
-        if (len < 20 || angle(v0, chord) > Math.PI / 2) continue;
-        const T = (len * 1.15) / ((speed0 + Math.hypot(v1.x, v1.y)) / 2);
-        const tr: Transfer = { p0, v0, p1, v1, T, theta, sgn: sg, start: time };
-        let clear = true;
-        for (let k = 1; k < 12 && clear; k++) {
-          const q = hermite(tr, k / 12).p;
-          clear = Math.hypot(q.x - now.x, (q.y - now.y) / TILT) > PLANET_R * 2.4;
-        }
-        if (!clear) continue;
-        // Bending one way into the arc and the other way onto the orbit reads as a wobble (an S-bend):
-        // prefer entries where arc and orbit curve in the same direction
-        const cross = (a: Vec, b: Vec) => a.x * b.y - a.y * b.x;
-        const sBend = Math.sign(cross(v0, chord)) !== Math.sign(cross(chord, v1)) || Math.sign(cross(chord, v1)) !== Math.sign(sg * TILT) ;
-        const score = angle(v0, chord) + angle(chord, v1) + (sBend ? 1.2 : 0);
-        if (score < bestScore) { bestScore = score; best = tr; }
-      }
-    }
-    return best;
-  }
-
-  function crumbAt(t: number) {
-    for (let i = crumbs.length - 1; i > 0; i--) {
-      if (crumbs[i - 1].t <= t) {
-        const a = crumbs[i - 1], b = crumbs[i], k = (t - a.t) / Math.max(b.t - a.t, 1e-6);
-        return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, s: k < 0.5 ? a.s : b.s };
-      }
-    }
-    return crumbs[0];
-  }
-
-  function pulse(p: Vec, color: string, time: number) {
-    const el = make('circle', fx, { r: 3, fill: 'none', stroke: color, 'stroke-width': 1.2, opacity: 0 });
-    put(el, p, 0.7);
-    pulses.push({ el, t0: time });
-  }
-
-  function reset() {
-    phase = 'idle';
-    transfer = null;
-    s = speed = lap = towed = 0;
-    crumbs = [];
-    for (const r of ranges) {
-      r.dot.style.opacity = '1';
-      if (r.ghost) r.ghost.style.opacity = '0';
-      r.body.mode = 'hidden';
-      r.body.hist = [];
-      r.body.ringAlpha = 0;
-    }
-    probe.mode = 'hidden';
-    probe.hist = [];
-  }
-
-  // Set a carried body loose around "now", continuing exactly the motion it had
-  function deploy(r: Range, time: number) {
-    const b = r.body;
-    const { R, period } = orbitFor(r.moon);
-    b.o = toOrbit(b.p, b.v, R, period);
-    b.o.omega = (sgn * 2 * Math.PI) / period;   // same sense of rotation as the probe
-    b.mode = 'orbit';
-    pulse(b.p, r.dot.dataset.color ?? '#fff', time);
-  }
-
-  const towedRanges = () => ranges.filter((r) => r.body.mode === 'towed').sort((a, b) => b.order - a.order);
-
-  function update(time: number, dt: number) {
-    if (phase === 'waiting' && time >= launchAt) phase = 'flying';
-
-    if (phase === 'flying') {
-      // Speed up gently, cruise, and ease off over a long stretch — the transfer arc does the rest
-      const remaining = length - HANDOVER - s;
-      const braking = Math.sqrt(ENTRY_SPEED ** 2 + 2 * DECEL * Math.max(remaining, 0));
-      speed = Math.min(speed + ACCEL * dt, cruise(), braking);
-      s += speed * dt;
-      const p = at(s), ahead = at(s + 1), behind = at(s - 1);
-      const tl = Math.hypot(ahead.x - behind.x, ahead.y - behind.y) || 1;
-      probe.mode = 'towed';
-      probe.p = p;
-      probe.v = { x: ((ahead.x - behind.x) / tl) * speed, y: ((ahead.y - behind.y) / tl) * speed };
-
-      for (const r of ranges) {
-        const b = r.body;
-        if (b.mode === 'hidden' && s >= r.startAt) {
-          // Pick-up: the body leaves its station and a dashed ring stays behind
-          b.mode = 'towed';
-          b.p = centre(r.dot);
-          b.v = { x: 0, y: 0 };
-          r.order = towed++;
-          r.dot.style.opacity = '0';
-          if (r.ghost) r.ghost.style.opacity = '1';
-          pulse(b.p, r.dot.dataset.color ?? '#fff', time);
-        }
-      }
-
-      if (s >= length - HANDOVER) {
-        transfer = planTransfer({ ...probe.p }, { ...probe.v }, time);
-        if (transfer) phase = 'transfer';
-        else {
-          // No clean arc found (unusual layout): let the orbit controller bend it in instead
-          probe.o = toOrbit(probe.p, probe.v, PROBE_R, PROBE_PERIOD);
-          sgn = Math.sign(probe.o.thetaDot) || 1;
-          probe.o.omega = (sgn * 2 * Math.PI) / PROBE_PERIOD;
-          phase = 'orbiting';
-          lap = 0;
-        }
-      }
-    } else if (phase === 'transfer' && transfer) {
-      const u = (time - transfer.start) / (transfer.T * 1000);
-      if (u < 1) {
-        const q = hermite(transfer, u);
-        probe.p = q.p;
-        probe.v = q.v;
-      } else {
-        // Arrived on the orbit exactly at orbital speed: from here on it simply circles
-        sgn = transfer.sgn;
-        const omega = (sgn * 2 * Math.PI) / PROBE_PERIOD;
-        probe.o = { rho: PROBE_R, rhoDot: 0, theta: transfer.theta, thetaDot: omega, R: PROBE_R, omega };
-        probe.p = fromOrbit(probe.o);
-        phase = 'orbiting';
-        lap = 0;
-      }
-    } else if (phase === 'orbiting' || phase === 'landing') {
-      stepOrbit(probe.o, dt);
-      lap += Math.abs(probe.o.thetaDot) * dt;
-      probe.p = fromOrbit(probe.o);
-
-      const carried = towedRanges();
-      const done = ranges.filter((r) => r.moon >= 0 && r.body.mode === 'orbit').length;
-      const total = carried.length + done;
-      // Spread the drop-offs over the lap, farthest-back body first
-      if (carried.length && lap >= ((done + 1) / (total + 1)) * 2 * Math.PI) deploy(carried[carried.length - 1], time);
-
-      if (phase === 'orbiting' && lap >= 2 * Math.PI && !carried.length) {
-        phase = 'landing';
-        probe.o.R = 0;                        // spiral down onto the planet
-      }
-      if (phase === 'landing' && probe.o.rho < PLANET_R * 0.6) {
-        phase = 'done';
-        probe.mode = 'hidden';
-        pulse(now, '#fde68a', time);
-      }
-    }
-
-    if (phase === 'flying' || phase === 'transfer' || phase === 'orbiting' || phase === 'landing') {
-      crumbs.push({ t: time, x: probe.p.x, y: probe.p.y, s: phase === 'flying' ? s : Infinity });
-      while (crumbs.length > 2 && crumbs[0].t < time - 3000) crumbs.shift();
-    }
-
-    // Towed bodies trail the probe along its own track; most recently collected rides closest
-    towedRanges().forEach((r, rank) => {
-      const c = crumbAt(time - LAG * 1000 * (rank + 1));
-      if (!c) return;
-      if (r.endAt !== null && c.s >= r.endAt) { r.body.mode = 'landing'; return; }
-      stepTow(r.body, c.s < r.startAt ? centre(r.dot) : c, dt);
-    });
-
-    for (const r of ranges) if (r.body.mode === 'landing' && r.end) stepTow(r.body, r.end, dt);
-    for (const m of moons) if (m.mode === 'orbit') { stepOrbit(m.o, dt); m.p = fromOrbit(m.o); m.ringAlpha = Math.min(m.ringAlpha + dt / 1.5, 1); }
-
-    for (let i = pulses.length - 1; i >= 0; i--) {
-      const q = (time - pulses[i].t0) / 800;
-      if (q >= 1) { pulses[i].el.remove(); pulses.splice(i, 1); continue; }
-      pulses[i].el.setAttribute('r', `${3 + 20 * q}`);
-      pulses[i].el.setAttribute('opacity', `${0.6 * (1 - q) ** 2}`);
-    }
-  }
-
-  // --- Rendering ----------------------------------------------------------------------------
-  function renderBodies() {
-    const bodies = new Set([...moons, ...ranges.map((r) => r.body), probe]);
-    for (const b of bodies) {
-      const shown = b.mode !== 'hidden';
-      if (shown) { b.hist.push({ ...b.p }); if (b.hist.length > 30) b.hist.shift(); }
-
-      // Depth near the planet: the near side (below its centre on screen) is slightly bigger and brighter,
-      // the far side smaller and dimmer, and hidden where the planet covers it
-      const dx = b.p.x - now.x, dy = b.p.y - now.y;
-      const near = Math.hypot(dx, dy / TILT) < PROBE_R * 1.6;
-      const depth = near ? Math.max(-1, Math.min(1, dy / (Math.max(Math.hypot(dx, dy / TILT), 1) * TILT))) : 0;
-      const behind = near && depth < 0;
-      const want = behind ? back : front;
-      if (b.el.parentNode !== want) want.appendChild(b.el);
-
-      const landingFade = b === probe && phase === 'landing' ? Math.min(1, probe.o.rho / (PROBE_R * 0.5)) : 1;
-      const opacity = shown ? landingFade * (0.82 + 0.18 * depth) : 0;
-      put(b.el, b.p, opacity, b.size * (1 + 0.16 * depth));
-      b.trail.forEach((c, i) => {
-        const h = b.hist[b.hist.length - 1 - (i + 1) * 2];
-        if (h && shown && !reduced) put(c, h, 0.3 * landingFade * (1 - i / b.trail.length)); else c.setAttribute('opacity', '0');
-      });
-      if (b.ring) b.ring.setAttribute('opacity', (0.16 * b.ringAlpha).toFixed(3));
-    }
-  }
-
-  // --- Loop ---------------------------------------------------------------------------------
-  // Each frame's real elapsed time is split into equal sub-steps of at most 1/120 s: stable physics,
-  // and every frame advances by exactly its own duration (no stutter from whole fixed steps)
-  const MAX_STEP = 1 / 120;
-  let visible = false, last = 0;
-  function frame(time: number) {
-    const elapsed = Math.min((time - (last || time)) / 1000, 0.1);
-    last = time;
-    if (visible && length && elapsed > 0) {
-      const steps = Math.ceil(elapsed / MAX_STEP), dt = elapsed / steps;
-      for (let i = 1; i <= steps; i++) update(time - (elapsed - i * dt) * 1000, dt);
-      renderBodies();
-    }
-    requestAnimationFrame(frame);
-  }
-
-  new ResizeObserver(layout).observe(list);
-  document.fonts?.ready.then(layout);
-  layout();
-
-  if (reduced) {
-    settle();
-  } else {
-    // Animate only while the list is on screen; start over once it has been left completely
-    new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting;
-      if (!e.isIntersecting && phase !== 'idle') reset();
-    }).observe(list);
-    // Launch when the oldest station — where the probe starts — comes into view
-    // (the list can be taller than the screen, so a share-of-list threshold would never fire on phones)
-    const launchPad = list.lastElementChild;
-    if (launchPad) new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && phase === 'idle') {
-        phase = 'waiting';
-        launchAt = performance.now() + 400;
-      }
-    }, { threshold: 0.6 }).observe(launchPad);
-    requestAnimationFrame(frame);
-  }
+  // On narrow screens the plot scrolls sideways; start at the recent end, where most is happening
+  document.querySelectorAll<HTMLElement>('[data-plot-scroll]').forEach(el => { el.scrollLeft = el.scrollWidth; });
 </script>
