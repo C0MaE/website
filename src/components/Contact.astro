@@ -17,11 +17,11 @@ const encodedEmail = Buffer.from(email.split('').reverse().join('')).toString('b
 <section id="contact" class="pt-14 md:pt-20 pb-10 px-5">
   <div class="page-container">
     <SectionHeader title="Contact" />
-    <p class="text-lg md:text-xl leading-relaxed text-zinc-300 max-w-xl mb-6">
+    <p class="md:text-base leading-relaxed text-zinc-300 max-w-xl mb-6">
       Questions, ideas or just hello: email is the best way to reach me.
     </p>
 
-    <ul class="flex flex-wrap gap-x-6 gap-y-2 text-lg">
+    <ul class="flex flex-wrap gap-x-6 gap-y-2">
       <li><a href="#contact" data-mail={encodedEmail} class="mail-link link">Email</a></li>
       {socials.map(s => (
         <li><a href={s.href} target="_blank" rel="noopener noreferrer" class="link">{s.label}</a></li>

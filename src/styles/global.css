@@ -20,9 +20,13 @@
   }
 
   body {
-    @apply bg-zinc-950 text-zinc-300 font-serif antialiased;
-    font-size: 1.0625rem;
-    line-height: 1.65;
+    @apply bg-zinc-950 text-zinc-300 font-mono antialiased;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
 
   ::selection {
@@ -51,7 +55,7 @@
   /* Logbook entries rendered from Markdown (lib/logbook.ts) */
   .log-body > * + * { margin-top: 0.75em; }
   .log-body a { @apply link; }
-  .log-body code { @apply font-mono text-[0.82em] px-1 py-0.5 rounded bg-zinc-900 text-zinc-200; }
+  .log-body code { @apply text-[0.92em] px-1 py-0.5 rounded bg-zinc-900 text-zinc-200; }
   .log-body strong { @apply font-semibold text-zinc-200; }
   .log-body ul { @apply list-disc pl-5 space-y-1; }
   .log-body ol { @apply list-decimal pl-5 space-y-1; }

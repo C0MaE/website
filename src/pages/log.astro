@@ -21,7 +21,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
     <div class="mx-auto max-w-3xl">
       <a href="/#building" class="text-[15px] text-muted hover:text-zinc-200 transition-colors">← CoMaE</a>
       <h1 class="mt-12 text-4xl md:text-5xl font-medium leading-tight text-zinc-50 mb-4">Lab notes</h1>
-      <p class="text-lg leading-relaxed text-zinc-400 max-w-xl mb-16">
+      <p class="leading-relaxed text-zinc-400 max-w-xl mb-16">
         One entry per session on what I'm building: what I did, what went wrong and what I learned.
       </p>
 
@@ -38,7 +38,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
                 </>
               )}
             </p>
-            <p class="text-xl italic leading-snug text-zinc-200">{project.question}</p>
+            <p class="md:text-lg italic leading-snug text-zinc-200">{project.question}</p>
           </div>
 
           {project.entries.length > 0 ? (

@@ -8,8 +8,9 @@ export default {
         '3xl': '1920px',
       },
       fontFamily: {
-        // One typeface for everything; self-hosted from @fontsource-variable (see BaseLayout)
-        serif: ['"Source Serif 4 Variable"', 'Georgia', 'serif'],
+        // Self-hosted from @fontsource-variable (see BaseLayout): headings and navigation, and running text
+        display: ['"Space Grotesk Variable"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
         // The only accent: warm sunlight, used sparingly (now markers, selection)

@@ -44,7 +44,7 @@ function banner() {
   console.log(ART.map(line => `%c${line}`).join('\n'), ...ART.map((_, i) => `${MONO};line-height:1.1;color:${mix(i / (ART.length - 1))}`));
   console.log(
     '%cCoMaE%c  hey there, fellow dev! You found the console.\n%cEverything on this page is open source → https://github.com/C0MaE/website',
-    'font-family:"Source Serif 4 Variable",Georgia,serif;font-size:22px;color:#fafafa', `${MONO};color:#d4d4d8`, `${MONO};color:#a1a1aa`,
+    'font-family:"Space Grotesk",system-ui,sans-serif;font-size:22px;color:#fafafa', `${MONO};color:#d4d4d8`, `${MONO};color:#a1a1aa`,
   );
   const commands: [string, string][] = [
     ['comet()', 'throw a comet into the solar system   · comet(distance AU, speed)'],

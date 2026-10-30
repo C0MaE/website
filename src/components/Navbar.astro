@@ -15,14 +15,14 @@ const links = [
   <nav class="page-container px-5 py-3.5 flex items-center justify-between">
     <a href="#hero" class="flex items-center gap-2.5 text-zinc-100 hover:text-white transition-colors">
       <img src="/profile_pic_light.svg" alt="" width="24" height="24" class="w-6 h-6" />
-      <span class="text-lg font-semibold leading-none">CoMaE</span>
+      <span class="font-display text-lg font-semibold tracking-tight leading-none">CoMaE</span>
     </a>
 
     <!-- Desktop links -->
     <ul class="hidden md:flex items-center gap-7">
       {links.map((link) => (
         <li>
-          <a href={link.href} class="text-[15px] text-zinc-400 hover:text-zinc-100 transition-colors">
+          <a href={link.href} class="font-display text-[15px] text-zinc-400 hover:text-zinc-100 transition-colors">
             {link.label}
           </a>
         </li>
@@ -45,7 +45,7 @@ const links = [
     <ul class="flex flex-col px-5 py-4 gap-3">
       {links.map((link) => (
         <li>
-          <a href={link.href} class="text-zinc-300 hover:text-zinc-100 transition-colors">
+          <a href={link.href} class="font-display text-zinc-300 hover:text-zinc-100 transition-colors">
             {link.label}
           </a>
         </li>

@@ -23,17 +23,17 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
     </div>
   </div>
   <div id="planet-tip" class="absolute z-20 pointer-events-none opacity-0 transition-opacity duration-150 px-3 py-2 rounded border border-zinc-800 bg-zinc-950/95 whitespace-nowrap" aria-hidden="true">
-    <p class="font-semibold leading-tight text-zinc-50" data-name></p>
+    <p class="font-display font-semibold leading-tight text-zinc-50" data-name></p>
     <p class="text-sm leading-snug text-zinc-400 tabular-nums" data-line1></p>
     <p class="text-sm leading-snug text-muted tabular-nums" data-line2></p>
   </div>
 
   <div class="relative z-10 page-container">
-    <h1 class="max-w-xl text-[2.5rem] sm:text-5xl lg:text-[3.25rem] 3xl:text-6xl font-medium leading-[1.1] tracking-[-0.01em] text-zinc-50 mb-7">
+    <h1 class="max-w-[38rem] text-balance text-[2rem] sm:text-5xl lg:text-[2.75rem] xl:text-5xl 3xl:text-6xl font-medium leading-[1.1] tracking-[-0.02em] text-zinc-50 mb-7">
       {headline}
     </h1>
 
-    <p class="max-w-xl text-lg md:text-xl leading-relaxed text-zinc-300 mb-12">
+    <p class="max-w-xl md:text-base leading-relaxed text-zinc-300 mb-12">
       {bio}
     </p>
 
@@ -97,7 +97,7 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
   const LIGHT_SPEEDUP = 1700, PULSE_EVERY = 9000; // a sunlight front every 9 s, Neptune reached after ~9 s
   const CME_AU_PER_SECOND = 0.9, CME_HALF_WIDTH = 0.5; // eruption front speed on screen, cone half-angle (rad)
   const DAY_MS = 86400000, KM_PER_AU = 149_597_871;
-  const SERIF = '"Source Serif 4 Variable", Georgia, serif';
+  const MONO = '"JetBrains Mono Variable", ui-monospace, monospace';
 
   const period = (a: number) => 365.25 * Math.pow(a, 1.5); // days, Kepler's third law
   const orbits = PLANETS.map(p => orbitAt(p, julianDate(Date.now())));
@@ -310,7 +310,7 @@ const external = (href?: string) => (href && !href.startsWith('#') ? { target: '
         ctx.globalAlpha = 0.55 * fade * flicker; ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(now.x, now.y, size * 3.4, 0, Math.PI * 2); ctx.fill();
         const note = p.name === 'Earth' ? `the eruption took ${a.days.toFixed(1)} days to get here` : '';
-        ctx.font = `13px ${SERIF}`;
+        ctx.font = `12px ${MONO}`;
         // Notes sit centred above the planet (below it near the top), kept inside the canvas
         const half = Math.max(ctx.measureText(look.text).width, ctx.measureText(note).width) / 2;
         const tx = Math.min(Math.max(now.x, half + 4), w - half - 4);

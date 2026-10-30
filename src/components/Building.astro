@@ -46,7 +46,7 @@ const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) 
                     </>
                   )}
                 </p>
-                <p class="text-xl md:text-[1.375rem] italic leading-snug text-zinc-100 mb-5">{item.question}</p>
+                <p class="md:text-lg italic leading-snug text-zinc-100 mb-5">{item.question}</p>
                 <p class="leading-relaxed text-zinc-300 mb-4">{item.description}</p>
                 <p class="text-[15px] text-muted">{item.tags.join(', ')}</p>
               </div>
