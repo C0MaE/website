@@ -31,7 +31,7 @@ const encodedEmail = Buffer.from(email.split('').reverse().join('')).toString('b
 
   <footer class="page-container mt-24 pt-6 border-t border-zinc-900 flex flex-col sm:flex-row justify-between gap-1 text-[15px] text-faint">
     <span>© {new Date().getFullYear()} {name ? `${name} (CoMaE)` : 'CoMaE'}</span>
-    <span>Kiel, 54.32° N</span>
+    <span>Kiel, 54.32° N · <a href="/privacy" class="hover:text-zinc-300 transition-colors">Privacy</a></span>
   </footer>
 </section>
 

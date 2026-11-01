@@ -1,0 +1,43 @@
+---
+import { UMAMI_WEBSITE_ID } from '../lib/umami';
+// Asks once whether visits may be recorded for replays and heatmaps; both answers are one click
+---
+
+<div
+  id="replay-consent"
+  class="hidden fixed z-50 bottom-4 left-4 right-4 sm:right-auto sm:max-w-sm p-4 rounded border border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shadow-lg shadow-black/40 text-sm leading-relaxed text-zinc-300"
+  role="dialog"
+  aria-labelledby="replay-consent-text"
+  data-website={UMAMI_WEBSITE_ID}
+>
+  <p id="replay-consent-text" class="mb-3">
+    May I record how you use this page? Clicks, scrolling and the page as you see it, kept as replays and
+    heatmaps on my own server. Nothing you type is recorded. <a href="/privacy" class="link">Privacy</a>
+  </p>
+  <div class="flex gap-3">
+    <button type="button" data-choice="no" class="flex-1 px-3 py-1.5 rounded border border-zinc-700 text-zinc-200 hover:border-zinc-400 hover:text-zinc-50 transition-colors">No thanks</button>
+    <button type="button" data-choice="yes" class="flex-1 px-3 py-1.5 rounded border border-zinc-700 text-zinc-200 hover:border-zinc-400 hover:text-zinc-50 transition-colors">Allow</button>
+  </div>
+</div>
+
+<script>
+  import { replayChoice, setReplayChoice, startReplay } from '../lib/replay';
+
+  // Astro ships this script on every page; pages without the banner (privacy) handle consent themselves
+  const box = document.getElementById('replay-consent');
+  if (box) {
+    const website = box.dataset.website ?? '';
+    const choice = replayChoice();
+    if (choice === 'yes') startReplay(website);
+    else if (choice === null) box.classList.remove('hidden');
+
+    box.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button => {
+      button.addEventListener('click', () => {
+        const answer = button.dataset.choice === 'yes' ? 'yes' : 'no';
+        setReplayChoice(answer);
+        box.classList.add('hidden');
+        if (answer === 'yes') startReplay(website);
+      });
+    });
+  }
+</script>

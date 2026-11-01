@@ -1,0 +1,130 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { fetchData } from '../lib/fetchData';
+import { UMAMI_WEBSITE_ID } from '../lib/umami';
+
+const { email } = await fetchData<{ email: string }>('contact.json');
+const { name } = await fetchData<{ name?: string }>('hero.json');
+// Same as on the home page: the address only appears once the browser decodes it
+const encodedEmail = Buffer.from(email.split('').reverse().join('')).toString('base64');
+---
+
+<BaseLayout
+  title="Privacy — CoMaE"
+  description="What happens with your data on comae.dev: server logs, cookie-free statistics, and session replays only if you allow them."
+  replayConsent={false}
+>
+  <main class="px-5 pt-16 pb-24 md:pt-24">
+    <div class="mx-auto max-w-3xl">
+      <a href="/" class="text-[15px] text-muted hover:text-zinc-200 transition-colors">← CoMaE</a>
+      <h1 class="mt-12 text-4xl md:text-5xl font-medium leading-tight text-zinc-50 mb-4">Privacy</h1>
+      <p class="leading-relaxed text-zinc-400 max-w-xl mb-14">
+        This site collects as little as it can. Here is everything that happens with your data when you visit comae.dev.
+      </p>
+
+      <div class="space-y-12 leading-relaxed">
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Who is responsible</h2>
+          <p>
+            {name ? `${name} (CoMaE)` : 'CoMaE'}, Kiel, Germany.
+            You can reach me by <a href="#" data-mail={encodedEmail} class="mail-link link">email</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Server logs</h2>
+          <p>
+            When you open a page, my server receives what every browser sends: your IP address, the time, the page you
+            asked for, the page you came from and your browser's user agent. The web server keeps this in its access
+            logs to deliver the site and keep it secure, which is a legitimate interest (Art. 6(1)(f) GDPR). The logs
+            are not used for statistics and are kept only as long as needed for that purpose.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Visitor statistics</h2>
+          <p>
+            I count visits with <a href="https://umami.is" target="_blank" rel="noopener noreferrer" class="link">Umami</a>,
+            running on my own server; no third party is involved. It records which pages are viewed, where visitors come
+            from, their country, region and city, device type, browser, operating system, screen size and language, and
+            clicks on links to other sites. Your IP address is used to work out the location and an anonymous visit ID and
+            is not stored. The ID changes regularly and cannot follow you to other sites. Nothing is stored on your device
+            for this. Legal basis: my legitimate interest in knowing how the site is used (Art. 6(1)(f) GDPR).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Session replays and heatmaps, only if you allow them</h2>
+          <p class="mb-4">
+            If you say yes, Umami's recorder (built on rrweb) also records your visit: the page as it is displayed, mouse
+            movements, clicks, scrolling and window size, for a few minutes at most. Anything you type is masked. From
+            these recordings Umami builds replays and click and scroll heatmaps. They are stored on my own server, only I
+            can see them, and I delete them once they no longer help me understand how the site is used. Legal basis: your
+            consent (Art. 6(1)(a) GDPR, § 25(1) TDDDG). Your answer is saved in your browser's local storage as
+            <code class="text-[0.92em] px-1 py-0.5 rounded bg-zinc-900 text-zinc-200">comae.replay</code>, and you can
+            change it here at any time:
+          </p>
+          <div id="replay-controls" class="p-4 rounded border border-zinc-800" data-website={UMAMI_WEBSITE_ID}>
+            <p id="replay-status" class="text-zinc-200 mb-3" aria-live="polite">&nbsp;</p>
+            <div class="flex flex-wrap gap-3">
+              <button type="button" data-choice="yes" class="px-3 py-1.5 rounded border border-zinc-700 text-zinc-200 hover:border-zinc-400 hover:text-zinc-50 transition-colors">Allow recording</button>
+              <button type="button" data-choice="no" class="px-3 py-1.5 rounded border border-zinc-700 text-zinc-200 hover:border-zinc-400 hover:text-zinc-50 transition-colors">Don't record</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Content from elsewhere</h2>
+          <p>
+            Fonts and images come from this server. The texts and the logbook are fetched from GitHub by my server, not by
+            your browser. Your browser only contacts other sites (GitHub, LinkedIn, ORCID, Discord and the project sites)
+            when you follow a link there.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-zinc-50 mb-3">Your rights</h2>
+          <p>
+            You can ask me what I know about you and have it corrected, deleted, restricted or handed over (Art. 15 to 18
+            and 20 GDPR), object to processing based on legitimate interest (Art. 21) and withdraw your consent at any time
+            (Art. 7(3)). An email is enough. You can also complain to a data protection authority, for example the
+            Unabhängiges Landeszentrum für Datenschutz Schleswig-Holstein in Kiel.
+          </p>
+        </section>
+
+        <p class="text-[15px] text-muted">Last updated November 2026.</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { replayChoice, setReplayChoice, startReplay } from '../lib/replay';
+
+  document.querySelectorAll<HTMLAnchorElement>('a.mail-link').forEach((a) => {
+    const address = atob(a.dataset.mail ?? '').split('').reverse().join('');
+    if (address) a.href = `mailto:${address}`;
+  });
+
+  const website = document.getElementById('replay-controls')!.dataset.website ?? '';
+  const status = document.getElementById('replay-status')!;
+  const show = () => {
+    const choice = replayChoice();
+    status.textContent = choice === 'yes' ? 'Recording is allowed in this browser.'
+      : choice === 'no' ? 'Recording is turned off in this browser.'
+      : 'You have not decided yet, so nothing is recorded.';
+  };
+  if (replayChoice() === 'yes') startReplay(website);
+  show();
+
+  document.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button => {
+    button.addEventListener('click', () => {
+      const before = replayChoice();
+      const answer = button.dataset.choice === 'yes' ? 'yes' : 'no';
+      setReplayChoice(answer);
+      show();
+      if (answer === 'yes') startReplay(website);
+      else if (before === 'yes') location.reload();   // stops a recorder already running on this page
+    });
+  });
+</script>

@@ -5,6 +5,7 @@ import '@fontsource-variable/jetbrains-mono/wght-italic.css';
 import '../styles/global.css';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { UMAMI_WEBSITE_ID } from '../lib/umami';
+import ReplayConsent from '../components/ReplayConsent.astro';
 
 interface Props {
   title?: string;
@@ -14,6 +15,8 @@ interface Props {
   author?: string;
   /** Keep the page out of search results (error pages) */
   noindex?: boolean;
+  /** Ask about session recording; the privacy page has its own controls instead */
+  replayConsent?: boolean;
 }
 
 const {
@@ -22,6 +25,7 @@ const {
   jsonLd,
   author = SITE_NAME,
   noindex = false,
+  replayConsent = true,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, SITE_URL).href;
@@ -74,6 +78,7 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
   </head>
   <body>
     <slot />
+    {replayConsent && <ReplayConsent />}
     <script>
       import { installConsole } from '../lib/console';
       installConsole();
