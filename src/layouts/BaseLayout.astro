@@ -81,7 +81,9 @@ const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, '\\u003c');
     {replayConsent && <ReplayConsent />}
     <script>
       import { installConsole } from '../lib/console';
+      import { markVisitor } from '../lib/visitor';
       installConsole();
+      markVisitor();
     </script>
   </body>
 </html>
