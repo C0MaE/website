@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800" role="img" aria-labelledby="t d">
+  <title id="t">mathguard finding a wrong step</title>
+  <desc id="d">mathguard checks a worked solution: a simplification is verified, the line v squared equals seven tenths g h is refuted because line 4 gives ten sevenths, and the overall verdict is refuted, first error in line 6.</desc>
+  <defs>
+    <style>
+      .t { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+      .cmd { font-size: 46px; font-weight: 500; fill: #f4f4f5; }
+      .line { font-size: 50px; fill: #e4e4e7; }
+      .note { font-size: 36px; fill: #a1a1aa; }
+      .ok { fill: #34d399; }
+      .bad { fill: #f87171; }
+      .sum { font-size: 50px; font-weight: 700; fill: #f87171; }
+    </style>
+  </defs>
+  <rect width="1280" height="800" fill="#09090b"/>
+  <rect x="30" y="30" width="1220" height="740" rx="22" fill="#0c0c0e" stroke="#27272a" stroke-width="3"/>
+  <path d="M52 30h1176a22 22 0 0 1 22 22v40H30V52a22 22 0 0 1 22-22z" fill="#18181b"/>
+  <circle cx="72" cy="61" r="10" fill="#3f3f46"/><circle cx="106" cy="61" r="10" fill="#3f3f46"/><circle cx="140" cy="61" r="10" fill="#3f3f46"/>
+
+  <text class="t cmd" x="80" y="190"><tspan fill="#d9b26f">$ </tspan>mathguard doc solution.md</text>
+  <text class="t line" x="80" y="310"><tspan class="ok">✔</tspan> ½mv² + ⅕mv² = 7/10 mv²</text>
+  <rect x="56" y="350" width="1168" height="190" rx="14" fill="#f87171" fill-opacity="0.08" stroke="#f87171" stroke-opacity="0.4" stroke-width="2"/>
+  <text class="t line" x="80" y="430"><tspan class="bad">✘</tspan> v² = 7/10 gh</text>
+  <text class="t note" x="132" y="500">line 4 gives v² = 10/7 gh</text>
+  <text class="t sum" x="80" y="670">REFUTED · first error in line 6</text>
+</svg>

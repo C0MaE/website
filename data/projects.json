@@ -1,5 +1,14 @@
 [
   {
+    "title": "mathguard",
+    "description": "Checks physics solutions, from students or language models, against a reference: formulas symbolically, numbers with units and rounding. In a worked solution it points at the first wrong line. In a hand-graded benchmark, 213 of its 216 verdicts were right.",
+    "tags": ["Python", "SymPy", "Pint", "LaTeX", "MCP"],
+    "github": "https://github.com/C0MaE/mathguard",
+    "live": null,
+    "featured": true,
+    "image": "/mathguard.svg"
+  },
+  {
     "title": "TAP – Tournament Manager",
     "description": "Tournament platform for esports communities: brackets, leagues, map veto and live scoring, with a player app and a Discord bot.",
     "tags": ["Rust", "Actix-web", "PostgreSQL", "Next.js", "React Native", "SvelteKit", "Docker"],
