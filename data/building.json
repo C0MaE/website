@@ -14,28 +14,6 @@
       "scikit-learn",
       "PyTorch",
       "Raman spectroscopy"
-    ],
-    "milestones": [
-      {
-        "label": "Peak shapes and exposure-time model, with tests",
-        "status": "done"
-      },
-      {
-        "label": "Noisy spectra and a baseline without ML",
-        "status": "active"
-      },
-      {
-        "label": "First trained models: logistic regression, random forest",
-        "status": "todo"
-      },
-      {
-        "label": "Detection rate against SNR for every model",
-        "status": "todo"
-      },
-      {
-        "label": "1D CNN in PyTorch, README with results",
-        "status": "todo"
-      }
     ]
   }
 ]
