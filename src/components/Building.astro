@@ -1,27 +1,13 @@
 ---
-import { fetchData } from '../lib/fetchData';
-import { fetchLog, formatDate } from '../lib/logbook';
+import { loadBuilding } from '../lib/site';
+import { formatDate } from '../lib/logbook';
 import SectionHeader from './SectionHeader.astro';
 import 'katex/dist/katex.min.css';
 
-// What is being worked on right now, with its milestones. Lives in data/building.json,
-// so ticking off a milestone goes live without a rebuild.
-interface Milestone { label: string; status: 'done' | 'active' | 'todo' }
-interface Building {
-  title: string;
-  question: string;
-  description: string;
-  started: string;
-  target?: string;
-  repo?: string | null;
-  /** Raw URL of the project's LOG.md (see lib/logbook.ts) */
-  log?: string | null;
-  tags: string[];
-  milestones: Milestone[];
-}
-
-const items = await fetchData<Building[]>('building.json');
-const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) : Promise.resolve([]))));
+// What is being worked on right now. The project itself lives in data/building.json, its milestones
+// and logbook in the project's repo (MILESTONES.md, LOG.md), so ticking off a milestone there and
+// pushing goes live without touching this site.
+const items = await loadBuilding();
 ---
 
 {items.length > 0 && (
@@ -30,9 +16,9 @@ const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) 
       <SectionHeader title="In progress" />
 
       <div class="space-y-16">
-        {items.map((item, index) => {
+        {items.map(item => {
           const done = item.milestones.filter(m => m.status === 'done').length;
-          const latest = logs[index][0];
+          const latest = item.entries[0];
           return (
             <article class="grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-10 lg:gap-16">
               <div>
@@ -51,7 +37,7 @@ const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) 
                 <p class="text-[15px] text-muted">{item.tags.join(', ')}</p>
               </div>
 
-              <div>
+              {item.milestones.length > 0 && <div>
                 <h4 class="text-[15px] text-muted mb-4">Milestones, {done} of {item.milestones.length} done</h4>
                 <ol class="space-y-2.5">
                   {item.milestones.map(m => (
@@ -67,7 +53,7 @@ const logs = await Promise.all(items.map(item => (item.log ? fetchLog(item.log) 
                   ))}
                 </ol>
                 {item.target && <p class="mt-5 text-[15px] italic text-muted">{item.target}</p>}
-              </div>
+              </div>}
 
               {latest && (
                 <div class="lg:col-span-2 border-t border-zinc-800 pt-8">

@@ -1,5 +1,6 @@
 import { fetchData } from './fetchData';
-import { fetchLog, type LogEntry } from './logbook';
+import { fetchLog } from './logbook';
+import { fetchMilestones, type Milestone } from './milestones';
 
 export const SITE_URL = 'https://comae.dev';
 export const SITE_NAME = 'CoMaE';
@@ -9,8 +10,28 @@ export interface Project { title: string; description: string; tags: string[]; g
 export interface ResearchProject { title: string; description: string; affiliation: string | null; affiliationUrl: string | null; tags: string[]; github: string | null; image: string | null; video: string | null; note?: string | null }
 export interface SkillCategory { name: string; icon: string; skills: string[] }
 export interface TimelineEvent { year: string; title: string; place: string; description: string; type: string; ongoing?: boolean; until?: string }
-export interface Building { title: string; question: string; description: string; started: string; target?: string; repo?: string | null; log?: string | null; tags: string[]; milestones: { label: string; status: 'done' | 'active' | 'todo' }[] }
+export interface Building {
+  title: string; question: string; description: string; started: string; target?: string; repo?: string | null; tags: string[];
+  /** Raw URL of the project's LOG.md (see lib/logbook.ts) */
+  log?: string | null;
+  /** Raw URL of the project's MILESTONES.md (see lib/milestones.ts) */
+  milestonesUrl?: string | null;
+  /** Used while MILESTONES.md is missing or unreachable */
+  milestones?: Milestone[];
+}
 export interface Contact { email: string; socials: { label: string; href: string }[] }
+
+/** What is being built right now, with milestones and logbook read live from each project's repo */
+export async function loadBuilding() {
+  const items = await fetchData<Building[]>('building.json');
+  return Promise.all(items.map(async b => {
+    const [milestones, entries] = await Promise.all([
+      b.milestonesUrl ? fetchMilestones(b.milestonesUrl) : null,
+      b.log ? fetchLog(b.log) : [],
+    ]);
+    return { ...b, milestones: milestones ?? b.milestones ?? [], entries };
+  }));
+}
 
 /** Everything the page is built from, loaded once so SEO data and page content never disagree */
 export async function loadSite() {
@@ -21,10 +42,9 @@ export async function loadSite() {
     fetchData<SkillCategory[]>('skills.json'),
     fetchData<TimelineEvent[]>('timeline.json'),
     fetchData<Contact>('contact.json'),
-    fetchData<Building[]>('building.json'),
+    loadBuilding(),
   ]);
-  const logs: LogEntry[][] = await Promise.all(building.map(b => (b.log ? fetchLog(b.log) : Promise.resolve([]))));
-  return { hero, projects, research, skills, timeline, contact, building: building.map((b, i) => ({ ...b, entries: logs[i] })) };
+  return { hero, projects, research, skills, timeline, contact, building };
 }
 export type Site = Awaited<ReturnType<typeof loadSite>>;
 
